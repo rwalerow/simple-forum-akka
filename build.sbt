@@ -7,7 +7,7 @@ scalaVersion := "2.11.8"
 libraryDependencies ++= {
   val akkaV = "2.4.8"
   val akkaPlayJsonV = "1.10.1"
-  val catsV = "0.6.0"
+  val catsV = "0.8.1"
   val postgresV = "9.4.1207"
   val scalaTestV = "2.2.6"
   val slickV = "3.1.1"
@@ -25,7 +25,9 @@ libraryDependencies ++= {
     "org.postgresql" % "postgresql" % postgresV,
     "org.scalatest" %% "scalatest" % scalaTestV % "test",
     "com.typesafe.akka" %% "akka-http-testkit" % akkaV,
-    "com.github.tminglei" %% "slick-pg" % "0.14.3"
+    "com.github.tminglei" %% "slick-pg" % "0.14.3",
+    "org.specs2" %%  "specs2-core"   % "2.3.11" % "test",
+    "org.specs2" %%  "specs2-mock"   % "2.3.11"
   )
 }
 flywayUrl:="jdbc:postgresql://localhost:5432/iterators-microservice"

@@ -9,14 +9,6 @@ import akka.http.scaladsl.server.Directives._
 import rwalerow.rest.Routes
 import rwalerow.utils.{ConfigurationImpl, PersistenceModuleImpl}
 
-object FirstRoutes {
-  val routes = {
-    pathPrefix("hello") {
-      complete(HttpResponse(Created))
-    }
-  }
-}
-
 object FirstMicroservice extends App {
   implicit val system = ActorSystem()
   implicit val executor = system.dispatcher
