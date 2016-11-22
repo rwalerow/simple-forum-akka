@@ -11,11 +11,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
   * source: https://github.com/cdiniz/slick-akka-http/tree/master/src/main/scala/persistence/entities
   */
 trait BaseEntity {
-  val id: Long
+  val id: Option[Long]
 }
 
 abstract class BaseTable[T](tag: Tag, name: String) extends Table[T](tag, name){
-  def id = column[Long]("id", O.PrimaryKey)
+  def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 }
 
 trait BaseDao[T, A] {
@@ -28,6 +28,7 @@ trait BaseDao[T, A] {
   def deleteById(id: Long): Future[Int]
   def deleteById(ids: Seq[Long]): Future[Int]
   def deleteByFilter[C: CanBeQueryCondition](f: T => C): Future[Int]
+  def list: Future[Seq[A]]
 }
 
 trait WithTableQuery[T <: BaseTable[A], A <: BaseEntity] {
@@ -71,4 +72,6 @@ class BaseDaoImpl[T <: BaseTable[A], A <: BaseEntity](val tableQuery: TableQuery
   override def deleteByFilter[C: CanBeQueryCondition](f: T => C): Future[Int] = db.run(
     tableQuery.withFilter(f).delete
   )
+
+  override def list: Future[Seq[A]] = db.run(tableQuery.result)
 }
