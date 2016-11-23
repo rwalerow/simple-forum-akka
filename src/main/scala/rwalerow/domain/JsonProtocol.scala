@@ -3,7 +3,7 @@ package rwalerow.domain
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import rwalerow.rest.CreateDiscussion
+import rwalerow.rest.{CreateDiscussion, CreatePost}
 import spray.json.{DefaultJsonProtocol, JsString, JsValue, RootJsonFormat}
 
 import scala.util.{Failure, Success, Try}
@@ -35,4 +35,5 @@ object JsonProtocol extends DefaultJsonProtocol {
 
   // Request protocols
   implicit val createDiscussionProtocol = jsonFormat4(CreateDiscussion.apply)
+  implicit val createPostProtocol = jsonFormat3(CreatePost.apply)
 }

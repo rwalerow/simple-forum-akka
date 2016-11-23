@@ -59,7 +59,7 @@ class BaseDaoImpl[T <: BaseTable[A], A <: BaseEntity](val tableQuery: TableQuery
     tableQuery.filter(_.id === id).result.headOption
   )
 
-  override def findByFilter[C: CanBeQueryCondition](f: (T) => C): Future[Seq[A]] = db.run(
+  override def findByFilter[C: CanBeQueryCondition](f: T => C): Future[Seq[A]] = db.run(
     tableQuery.withFilter(f).result
   )
 
