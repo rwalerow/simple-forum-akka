@@ -3,15 +3,14 @@ package rwalerow.rest
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import rwalerow.domain._
-
-import scala.concurrent.Future
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.StatusCodes._
 import org.mockito.Mockito._
 import org.scalatest.Matchers
 import rwalerow.domain.JsonProtocol._
-//import slick.lifted._
+import rwalerow.domain._
+
+import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
 class RoutesSpec extends AbstractRestTest with Matchers {
@@ -33,12 +32,12 @@ class RoutesSpec extends AbstractRestTest with Matchers {
 
     "valid discussion be created" in {
       modules.discussionDao.insert(any[Discussion]) returns Future(1)
-      modules.postDao.insert(any[Post]) returns Future(1)
+      modules.extendedPostQueries.insert(any[Post]) returns Future(1)
 
       Put("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
-        status shouldEqual StatusCodes.Created
-        verify(modules.postDao).insert(any[Post])
+        status shouldEqual Created
+        verify(modules.extendedPostQueries).insert(any[Post])
         verify(modules.discussionDao).insert(any[Discussion])
       }
     }
@@ -47,7 +46,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       val invalidDiscussion = CreateDiscussion("subject", "contents", "thisisrealytolongnickforittobetrueandnoteasytoremember", "gmail.com")
       Put("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
-        status shouldEqual StatusCodes.BadRequest
+        status shouldEqual BadRequest
         responseAs[List[String]].isEmpty shouldEqual false
         responseAs[List[String]] should contain theSameElementsAs List("Invalid address email format", "Nick is to long")
       }
@@ -59,12 +58,12 @@ class RoutesSpec extends AbstractRestTest with Matchers {
     "create a valid post" in {
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
       val discussion = Discussion(Some(1), Subject("subject"))
-      modules.postDao.insert(any[Post]) returns Future(1)
+      modules.extendedPostQueries.insert(any[Post]) returns Future(1)
       modules.discussionDao.findById(anyLong) returns Future(Some(discussion))
 
       Put("/discussion/1/post", validPost) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
-        status shouldEqual StatusCodes.Created
+        status shouldEqual Created
         responseAs[String].length > 0 shouldEqual true
         /*
             Why it is called twice?
@@ -77,12 +76,12 @@ class RoutesSpec extends AbstractRestTest with Matchers {
     "delete valid post" in {
       val secret = Secret("abcdefghijklmnoprstuwxyz")
       def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === secret
-      modules.postDao.deleteByFilter(f) returns Future(1)
+      modules.extendedPostQueries.deleteByFilter(f) returns Future(1)
 
       Delete("/discussion/1/post", secret) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
-        status shouldEqual StatusCodes.OK
-        verify(modules.postDao).deleteByFilter(f)
+        status shouldEqual OK
+        verify(modules.extendedPostQueries).deleteByFilter(f)
       }
     }
 
@@ -95,11 +94,22 @@ class RoutesSpec extends AbstractRestTest with Matchers {
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.postDao.findByFilter(f(1)) returns Future(List(p))
+      modules.extendedPostQueries.findByFilter(f(1)) returns Future(List(p))
 
       Get("/discussion/1/posts") ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
-        status shouldEqual StatusCodes.OK
+        status shouldEqual OK
+      }
+    }
+
+    "update post based on secret" in {
+      val secret = Secret("abcdefg")
+      val contents = Contents("new contetns")
+      modules.extendedPostQueries.updateBySecret(secret, contents) returns Future(1)
+
+      Post(s"/discussion/1/post/${secret.value}", contents) ~> discussionRoutes.routes ~> check {
+        handled shouldEqual true
+        status shouldEqual OK
       }
     }
   }

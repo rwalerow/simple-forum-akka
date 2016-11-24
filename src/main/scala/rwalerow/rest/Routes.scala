@@ -4,7 +4,8 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives
 import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
@@ -19,7 +20,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
   def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & onComplete(modules.discussionDao.list)) {
     case Success(discussions) => complete(discussions)
-    case Failure(err) => complete(StatusCodes.InternalServerError, s"Error occurred ${err.getMessage}")
+    case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
   }
 
   def discussionCreateRoute = pathPrefix("discussion") {
@@ -37,24 +38,24 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
           )
           val response = for {
             createdId <- modules.discussionDao.insert(discussion)
-            createdPostId <- modules.postDao.insert(post.copy(discussionId = createdId))
+            createdPostId <- modules.extendedPostQueries.insert(post.copy(discussionId = createdId))
           } yield createdPostId
 
           onComplete(response) {
-            case Success(_) => complete(HttpResponse(status = StatusCodes.Created, entity = post.secret.value))
-            case Failure(err) => complete(HttpResponse(status = StatusCodes.BadRequest, entity = err.getMessage))
+            case Success(_) => complete(HttpResponse(status = Created, entity = post.secret.value))
+            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
           }
-        case Invalid(errors) => complete(StatusCodes.BadRequest, errors.toList)
+        case Invalid(errors) => complete(BadRequest, errors.toList)
       }
     }
   }
 
-  val postRoute = path("discussion" / LongNumber / "post")
+  val postRoute = pathPrefix("discussion" / LongNumber / "post")
 
   def getPosts = (path("discussion" / LongNumber / "posts") & get) { discussionId =>
-    onComplete(modules.postDao.findByFilter{_.discussionId === discussionId}) {
+    onComplete(modules.extendedPostQueries.findByFilter{_.discussionId === discussionId}) {
       case Success(posts) => complete(posts)
-      case Failure(err) => complete(StatusCodes.InternalServerError, s"Error occurred ${err.getMessage}")
+      case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
     }
   }
 
@@ -73,26 +74,37 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
           val query = for {
             exists <- modules.discussionDao.findById(discussionId) if exists.isDefined
-            createPostId <- modules.postDao.insert(post)
+            createPostId <- modules.extendedPostQueries.insert(post)
           } yield createPostId
 
           onComplete(query) {
-            case Success(_) => complete(HttpResponse(status = StatusCodes.Created, entity = post.secret.value))
-            case Failure(err) => complete(HttpResponse(status = StatusCodes.BadRequest, entity = err.getMessage))
+            case Success(_) => complete(HttpResponse(status = Created, entity = post.secret.value))
+            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
           }
-        case Invalid(errors) => complete(StatusCodes.BadRequest, errors.toList)
+        case Invalid(errors) => complete(BadRequest, errors.toList)
       }
     }
   }
 
   def deletePost = (postRoute & delete) { discussionId =>
     entity(as[Secret]) { secret =>
-      onComplete(modules.postDao.deleteByFilter{ x => x.discussionId === discussionId && x.secret === secret}) {
-        case Success(_) => complete(HttpResponse(status = StatusCodes.OK))
-        case Failure(err) => complete(HttpResponse(status = StatusCodes.BadRequest, entity = err.getMessage))
+      onComplete(modules.extendedPostQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === secret}) {
+        case Success(_) => complete(HttpResponse(status = OK))
+        case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
       }
     }
   }
 
-  val routes = discussionListRoute ~ discussionCreateRoute ~ getPosts ~ createPost ~ deletePost
+  def updatePost = (postRoute & path(Segment)){ (discussionId, secret) =>
+      post {
+        entity(as[Contents]) { contents =>
+          onComplete(modules.extendedPostQueries.updateBySecret(Secret(secret), contents)) {
+            case Success(_) => complete(HttpResponse(OK))
+            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
+          }
+        }
+      }
+  }
+
+  val routes = discussionListRoute ~ discussionCreateRoute ~ getPosts ~ createPost ~ deletePost ~ updatePost
 }
