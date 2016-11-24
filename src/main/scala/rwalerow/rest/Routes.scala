@@ -18,9 +18,16 @@ import scala.util.{Failure, Success}
 
 class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
-  def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & onComplete(modules.discussionQueries.listDiscussionByPostDates)) {
-    case Success(discussions) => complete(discussions)
-    case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+  def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & parameters('limit.as[Int].?, 'offset.as[Int].?)) { (limit, offset) =>
+
+    val maxLimit = modules.config.getInt("limit.discussions")
+    val calculatedLimit = limit.filter(_ < maxLimit).getOrElse(maxLimit)
+    val calculatedOffset = offset.getOrElse(0)
+
+    onComplete(modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)) {
+      case Success(discussions) => complete(discussions)
+      case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+    }
   }
 
   def discussionCreateRoute = pathPrefix("discussion") {

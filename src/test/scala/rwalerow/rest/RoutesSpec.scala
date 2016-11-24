@@ -5,24 +5,30 @@ import java.time.LocalDateTime
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes._
+import akka.util.Helpers.Requiring
+import org.mockito.ArgumentMatcher
 import org.mockito.Mockito._
 import org.scalatest.Matchers
+import org.specs2.matcher.{AnyMatchers, BeEqualTo, NumericMatchers}
 import rwalerow.domain.JsonProtocol._
 import rwalerow.domain._
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
-class RoutesSpec extends AbstractRestTest with Matchers {
+class RoutesSpec extends AbstractRestTest with Matchers with org.specs2.matcher.AnyMatchers{
 
-  def actorRefFactory = system
-  val modules = new Modules{}
-  val discussionRoutes = new Routes(modules)
+  trait Mocks {
+    def actorRefFactory = system
+    val modules = new Modules {}
+    val discussionRoutes = new Routes(modules)
+  }
 
   "Discussion routes" should {
 
-    "return empty array of discussions" in {
-      modules.discussionQueries.listDiscussionByPostDates returns Future(List())
+    "return empty array of discussions" in new Mocks {
+      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
+      modules.conf.getInt(anyString) returns 10
 
       Get("/discussions") ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
@@ -30,7 +36,27 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       }
     }
 
-    "valid discussion be created" in {
+    "pass url limit to listDiscussions" in new Mocks {
+      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
+      modules.conf.getInt(anyString) returns 10
+
+      Get("/discussions?limit=2") ~> discussionRoutes.routes ~> check {
+        handled shouldEqual true
+        verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(2)), offset = anyInt)
+      }
+    }
+
+    "pass config limit to listDiscussions" in new Mocks {
+      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
+      modules.conf.getInt(anyString) returns 10
+
+      Get("/discussions?limit=22") ~> discussionRoutes.routes ~> check {
+        handled shouldEqual true
+        verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(10)), offset = anyInt)
+      }
+    }
+
+    "valid discussion be created" in new Mocks {
       modules.discussionQueries.insert(any[Discussion]) returns Future(1)
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
 
@@ -42,7 +68,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       }
     }
 
-    "invalid discussion be filtered" in {
+    "invalid discussion be filtered" in new Mocks {
       val invalidDiscussion = CreateDiscussion("subject", "contents", "thisisrealytolongnickforittobetrueandnoteasytoremember", "gmail.com")
       Put("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
@@ -55,7 +81,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
 
   "Post routes" should {
 
-    "create a valid post" in {
+    "create a valid post" in new Mocks {
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
       val discussion = Discussion(Some(1), Subject("subject"))
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
@@ -73,7 +99,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       }
     }
 
-    "delete valid post" in {
+    "delete valid post" in new Mocks {
       val secret = Secret("abcdefghijklmnoprstuwxyz")
       def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === secret
       modules.extendedPostQueries.deleteByFilter(f) returns Future(1)
@@ -85,8 +111,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       }
     }
 
-
-    "find all posts for discussion" in {
+    "find all posts for discussion" in new Mocks {
       def f(l: Long)(x: Posts): Rep[Boolean] = x.id === l
       val p = rwalerow.domain.Post(nick = Nick("nick"),
         contents = Contents("contents"),
@@ -102,7 +127,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       }
     }
 
-    "update post based on secret" in {
+    "update post based on secret" in new Mocks {
       val secret = Secret("abcdefg")
       val contents = Contents("new contetns")
       modules.extendedPostQueries.updateBySecret(secret, contents) returns Future(1)

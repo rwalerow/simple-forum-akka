@@ -17,8 +17,7 @@ trait AbstractRestTest extends WordSpec with Matchers with ScalatestRouteTest wi
     val system = AbstractRestTest.this.system
     override val discussionQueries: DiscussionQueriesExtended = mock[DiscussionQueriesExtended]
     override val extendedPostQueries: PostQueriesExtended = mock[PostQueriesExtended]
-    override def config = getConfig.withFallback(super.config)
+    val conf = mock[Config]
+    override def config = conf
   }
-
-  def getConfig: Config = ConfigFactory.empty()
 }

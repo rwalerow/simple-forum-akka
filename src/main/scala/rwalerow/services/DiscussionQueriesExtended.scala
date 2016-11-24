@@ -16,7 +16,7 @@ class DiscussionQueriesExtended(posts: TableQuery[Posts])
 
   import profile.api._
 
-  def listDiscussionByPostDates: Future[Seq[Discussion]] = db.run {
+  def listDiscussionByPostDates(limit: Int = 50, offset: Int = 0): Future[Seq[Discussion]] = db.run {
     val maxPost =
           for {
           (disId, p) <- posts.groupBy{_.discussionId}
@@ -26,6 +26,10 @@ class DiscussionQueriesExtended(posts: TableQuery[Posts])
       (dis, (disId, createDate)) <- tableQuery join maxPost on (_.id === _._1)
     } yield (dis, createDate)
 
-    discussionWithDate.sortBy{_._2.desc}.map(_._1).result
+    discussionWithDate
+      .sortBy{ _._2.desc }
+      .drop(offset)
+      .take(limit)
+      .map(_._1).result
   }
 }
