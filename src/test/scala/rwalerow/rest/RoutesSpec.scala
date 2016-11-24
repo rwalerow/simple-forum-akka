@@ -22,7 +22,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
   "Discussion routes" should {
 
     "return empty array of discussions" in {
-      modules.discussionQueries.list returns Future(List())
+      modules.discussionQueries.listDiscussionByPostDates returns Future(List())
 
       Get("/discussions") ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
