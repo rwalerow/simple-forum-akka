@@ -1,7 +1,7 @@
 package rwalerow.utils
 
 import rwalerow.domain.{Discussion, Discussions, Post, Posts}
-import rwalerow.services.PostQueriesExtended
+import rwalerow.services.{DiscussionQueriesExtended, PostQueriesExtended}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcBackend
@@ -19,7 +19,7 @@ trait DbModule extends Profile {
 }
 
 trait PersistenceModule {
-  val discussionDao: BaseDao[Discussions, Discussion]
+  val discussionQueries: DiscussionQueriesExtended
   val extendedPostQueries: PostQueriesExtended
 }
 
@@ -30,8 +30,8 @@ trait PersistenceModuleImpl extends PersistenceModule with DbModule {
   override implicit val profile: JdbcProfile = dbConfig.driver
   override implicit val db: JdbcBackend#DatabaseDef = dbConfig.db
 
-  override val discussionDao = new BaseDaoImpl[Discussions, Discussion](TableQuery[Discussions])
   override val extendedPostQueries = new PostQueriesExtended
+  override val discussionQueries = new DiscussionQueriesExtended(extendedPostQueries.tableQuery)
 }
 
 

@@ -18,7 +18,7 @@ import scala.util.{Failure, Success}
 
 class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
-  def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & onComplete(modules.discussionDao.list)) {
+  def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & onComplete(modules.discussionQueries.listDiscussionByPostDates)) {
     case Success(discussions) => complete(discussions)
     case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
   }
@@ -37,7 +37,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
             discussionId = 0L
           )
           val response = for {
-            createdId <- modules.discussionDao.insert(discussion)
+            createdId <- modules.discussionQueries.insert(discussion)
             createdPostId <- modules.extendedPostQueries.insert(post.copy(discussionId = createdId))
           } yield createdPostId
 
@@ -73,7 +73,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
           )
 
           val query = for {
-            exists <- modules.discussionDao.findById(discussionId) if exists.isDefined
+            exists <- modules.discussionQueries.findById(discussionId) if exists.isDefined
             createPostId <- modules.extendedPostQueries.insert(post)
           } yield createPostId
 

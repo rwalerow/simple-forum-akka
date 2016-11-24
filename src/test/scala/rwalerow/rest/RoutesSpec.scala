@@ -22,7 +22,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
   "Discussion routes" should {
 
     "return empty array of discussions" in {
-      modules.discussionDao.list returns Future(List())
+      modules.discussionQueries.list returns Future(List())
 
       Get("/discussions") ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
@@ -31,14 +31,14 @@ class RoutesSpec extends AbstractRestTest with Matchers {
     }
 
     "valid discussion be created" in {
-      modules.discussionDao.insert(any[Discussion]) returns Future(1)
+      modules.discussionQueries.insert(any[Discussion]) returns Future(1)
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
 
       Put("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         verify(modules.extendedPostQueries).insert(any[Post])
-        verify(modules.discussionDao).insert(any[Discussion])
+        verify(modules.discussionQueries).insert(any[Discussion])
       }
     }
 
@@ -59,7 +59,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
       val discussion = Discussion(Some(1), Subject("subject"))
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
-      modules.discussionDao.findById(anyLong) returns Future(Some(discussion))
+      modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
 
       Put("/discussion/1/post", validPost) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
@@ -69,7 +69,7 @@ class RoutesSpec extends AbstractRestTest with Matchers {
             Why it is called twice?
          */
 //        verify(modules.postDao).insert(any[Post])
-        verify(modules.discussionDao).findById(anyLong)
+        verify(modules.discussionQueries).findById(anyLong)
       }
     }
 

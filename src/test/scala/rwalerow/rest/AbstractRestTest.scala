@@ -5,7 +5,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.{Matchers, WordSpec}
 import org.specs2.mock.Mockito
 import rwalerow.domain.{Discussion, Discussions, Post, Posts}
-import rwalerow.services.PostQueriesExtended
+import rwalerow.services.{DiscussionQueriesExtended, PostQueriesExtended}
 import rwalerow.utils.{BaseDao, ConfigurationImpl, PersistenceModule}
 
 /**
@@ -15,7 +15,7 @@ trait AbstractRestTest extends WordSpec with Matchers with ScalatestRouteTest wi
 
   trait Modules extends ConfigurationImpl with PersistenceModule {
     val system = AbstractRestTest.this.system
-    override val discussionDao = mock[BaseDao[Discussions, Discussion]]
+    override val discussionQueries: DiscussionQueriesExtended = mock[DiscussionQueriesExtended]
     override val extendedPostQueries: PostQueriesExtended = mock[PostQueriesExtended]
     override def config = getConfig.withFallback(super.config)
   }
