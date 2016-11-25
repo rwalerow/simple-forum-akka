@@ -5,18 +5,16 @@ import java.time.LocalDateTime
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.StatusCodes._
-import akka.util.Helpers.Requiring
-import org.mockito.ArgumentMatcher
 import org.mockito.Mockito._
 import org.scalatest.Matchers
-import org.specs2.matcher.{AnyMatchers, BeEqualTo, NumericMatchers}
 import rwalerow.domain.JsonProtocol._
 import rwalerow.domain._
+import org.specs2.matcher.AnyMatchers
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
-class RoutesSpec extends AbstractRestTest with Matchers with org.specs2.matcher.AnyMatchers{
+class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
 
   trait Mocks {
     def actorRefFactory = system
@@ -112,16 +110,19 @@ class RoutesSpec extends AbstractRestTest with Matchers with org.specs2.matcher.
     }
 
     "find all posts for discussion" in new Mocks {
-      def f(l: Long)(x: Posts): Rep[Boolean] = x.id === l
-      val p = rwalerow.domain.Post(nick = Nick("nick"),
+      val p = rwalerow.domain.Post(id = Some(1),
+        nick = Nick("nick"),
         contents = Contents("contents"),
         email = Email("a@gmail.com"),
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.extendedPostQueries.findByFilter(f(1)) returns Future(List(p))
+      modules.extendedPostQueries.before(anyInt, any[Timestamp]) returns Future(0)
+      modules.extendedPostQueries.after(anyInt, any[Timestamp]) returns Future(0)
+      modules.extendedPostQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
+      modules.extendedPostQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
 
-      Get("/discussion/1/posts") ~> discussionRoutes.routes ~> check {
+      Get("/discussion/1/posts/1") ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
       }

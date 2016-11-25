@@ -11,6 +11,8 @@ import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
 import rwalerow.utils.{Configuration, PersistenceModule}
 import rwalerow.domain.JsonProtocol._
+import rwalerow.services.PostCalculations
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import slick.driver.PostgresDriver.api._
 
@@ -59,9 +61,23 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
   val postRoute = pathPrefix("discussion" / LongNumber / "post")
 
-  def getPosts = (path("discussion" / LongNumber / "posts") & get) { discussionId =>
-    onComplete(modules.extendedPostQueries.findByFilter{_.discussionId === discussionId}) {
-      case Success(posts) => complete(posts)
+  def getPosts = (path("discussion" / LongNumber / "posts" / LongNumber) & get) { (discussionId, postId) =>
+
+    val configLimit = modules.config.getInt("limit.posts")
+
+    onComplete(modules.extendedPostQueries.postWithIndex(discussionId, postId)) {
+      case Success(Some((post, index))) =>
+        val responseQuery = for {
+          before                  <- modules.extendedPostQueries.before(discussionId, post.createDate)
+          after                   <- modules.extendedPostQueries.after(discussionId, post.createDate)
+          (takeBefore, takeAfter) = if((before + after + 1) > configLimit) PostCalculations.calculateBeforeAndAfter(before, after, configLimit) else (before, after)
+          posts                   <- modules.extendedPostQueries.findInRange(takeBefore, takeAfter, index, discussionId)
+        } yield posts
+        onComplete(responseQuery) {
+          case Success(postsResult) => complete(postsResult)
+          case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+        }
+      case Success(None) => complete(HttpResponse(status = BadRequest, entity = "Post not found"))
       case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
     }
   }
