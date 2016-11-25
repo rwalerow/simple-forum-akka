@@ -8,9 +8,6 @@ import spray.json.{DefaultJsonProtocol, JsString, JsValue, RootJsonFormat}
 
 import scala.util.{Failure, Success, Try}
 
-/**
-  * Created by robert on 21.11.16.
-  */
 object JsonProtocol extends DefaultJsonProtocol {
 
   implicit val nickProtocol = jsonFormat1(Nick.apply)

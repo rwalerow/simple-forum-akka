@@ -1,11 +1,9 @@
 package rwalerow.utils
 
-import rwalerow.domain.{Discussion, Discussions, Post, Posts}
 import rwalerow.services.{DiscussionQueriesExtended, PostQueriesExtended}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcBackend
-import slick.lifted.TableQuery
 
 /**
   * source: https://github.com/cdiniz/slick-akka-http/blob/master/src/main/scala/utils/PersistenceModule.scala

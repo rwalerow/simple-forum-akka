@@ -7,9 +7,6 @@ import slick.lifted.TableQuery
 
 import scala.concurrent.Future
 
-/**
-  * Created by robert on 24.11.16.
-  */
 class DiscussionQueriesExtended(posts: TableQuery[Posts])
                                (implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)
   extends BaseDaoImpl[Discussions, Discussion](TableQuery[Discussions]){
@@ -17,13 +14,13 @@ class DiscussionQueriesExtended(posts: TableQuery[Posts])
   import profile.api._
 
   def listDiscussionByPostDates(limit: Int = 50, offset: Int = 0): Future[Seq[Discussion]] = db.run {
-    val maxPost =
+    val newestPost =
           for {
           (disId, p) <- posts.groupBy{_.discussionId}
         } yield disId -> p.map(_.createDate).max
 
     val discussionWithDate = for {
-      (dis, (disId, createDate)) <- tableQuery join maxPost on (_.id === _._1)
+      (dis, (disId, createDate)) <- tableQuery join newestPost on (_.id === _._1)
     } yield (dis, createDate)
 
     discussionWithDate

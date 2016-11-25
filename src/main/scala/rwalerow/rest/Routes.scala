@@ -59,8 +59,6 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  val postRoute = pathPrefix("discussion" / LongNumber / "post")
-
   def getPosts = (path("discussion" / LongNumber / "posts" / LongNumber) & get) { (discussionId, postId) =>
 
     val configLimit = modules.config.getInt("limit.posts")
@@ -68,8 +66,8 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     onComplete(modules.extendedPostQueries.postWithIndex(discussionId, postId)) {
       case Success(Some((post, index))) =>
         val responseQuery = for {
-          before                  <- modules.extendedPostQueries.before(discussionId, post.createDate)
-          after                   <- modules.extendedPostQueries.after(discussionId, post.createDate)
+          before                  <- modules.extendedPostQueries.countBefore(discussionId, post.createDate)
+          after                   <- modules.extendedPostQueries.countAfter(discussionId, post.createDate)
           (takeBefore, takeAfter) = if((before + after + 1) > configLimit) PostCalculations.calculateBeforeAndAfter(before, after, configLimit) else (before, after)
           posts                   <- modules.extendedPostQueries.findInRange(takeBefore, takeAfter, index, discussionId)
         } yield posts
@@ -81,6 +79,8 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
       case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
     }
   }
+
+  val postRoute = pathPrefix("discussion" / LongNumber / "post")
 
   def createPost = (postRoute & post) { discussionId =>
     entity(as[CreatePost]) { createP =>

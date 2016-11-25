@@ -117,8 +117,8 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.extendedPostQueries.before(anyInt, any[Timestamp]) returns Future(0)
-      modules.extendedPostQueries.after(anyInt, any[Timestamp]) returns Future(0)
+      modules.extendedPostQueries.countBefore(anyInt, any[Timestamp]) returns Future(0)
+      modules.extendedPostQueries.countAfter(anyInt, any[Timestamp]) returns Future(0)
       modules.extendedPostQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
       modules.extendedPostQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
 
