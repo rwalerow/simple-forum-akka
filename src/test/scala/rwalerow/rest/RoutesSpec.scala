@@ -58,7 +58,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
       modules.discussionQueries.insert(any[Discussion]) returns Future(1)
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
 
-      Put("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> discussionRoutes.routes ~> check {
+      Post("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         verify(modules.extendedPostQueries).insert(any[Post])
@@ -68,7 +68,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
 
     "invalid discussion be filtered" in new Mocks {
       val invalidDiscussion = CreateDiscussion("subject", "contents", "thisisrealytolongnickforittobetrueandnoteasytoremember", "gmail.com")
-      Put("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
+      Post("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual BadRequest
         responseAs[List[String]].isEmpty shouldEqual false
@@ -85,7 +85,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
       modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
 
-      Put("/discussion/1/post", validPost) ~> discussionRoutes.routes ~> check {
+      Post("/discussion/1/post", validPost) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         responseAs[String].length > 0 shouldEqual true
@@ -133,7 +133,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
       val contents = Contents("new contetns")
       modules.extendedPostQueries.updateBySecret(secret, contents) returns Future(1)
 
-      Post(s"/discussion/1/post/${secret.value}", contents) ~> discussionRoutes.routes ~> check {
+      Put(s"/discussion/1/post/${secret.value}", contents) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
       }

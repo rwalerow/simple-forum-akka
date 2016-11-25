@@ -33,7 +33,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   }
 
   def discussionCreateRoute = pathPrefix("discussion") {
-    (pathEnd & put & entity(as[CreateDiscussion])) { createD =>
+    (pathEnd & post & entity(as[CreateDiscussion])) { createD =>
       CreateDiscussion.validate(createD) match {
         case Valid(createDiscussion) =>
           val discussion = Discussion(subject = Subject(createDiscussion.subject))
@@ -82,7 +82,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def createPost = (postRoute & put) { discussionId =>
+  def createPost = (postRoute & post) { discussionId =>
     entity(as[CreatePost]) { createP =>
       CreatePost.validate(createP) match {
         case Valid(createPost) =>
@@ -119,7 +119,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   }
 
   def updatePost = (postRoute & path(Segment)){ (discussionId, secret) =>
-      post {
+      put {
         entity(as[Contents]) { contents =>
           onComplete(modules.extendedPostQueries.updateBySecret(Secret(secret), contents)) {
             case Success(_) => complete(HttpResponse(OK))
