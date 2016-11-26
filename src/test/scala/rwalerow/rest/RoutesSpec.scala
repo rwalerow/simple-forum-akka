@@ -97,11 +97,11 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     }
 
     "delete valid post" in new Mocks {
-      val secret = Secret("abcdefghijklmnoprstuwxyz")
-      def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === secret
+      val secret = "abcdefghijklmnoprstuwxyz"
+      def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === Secret(secret)
       modules.extendedPostQueries.deleteByFilter(f) returns Future(1)
 
-      Delete("/discussion/1/post", secret) ~> discussionRoutes.routes ~> check {
+      Delete("/discussion/1/post/" + secret, secret) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
         verify(modules.extendedPostQueries).deleteByFilter(f)
