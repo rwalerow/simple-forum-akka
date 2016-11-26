@@ -26,7 +26,6 @@ case class Subject(value: String) extends MappedTo[String] {
 }
 case class Discussion(id: Option[Long] = None, subject: Subject) extends BaseEntity
 
-
 /**
   * Companion objects
   */

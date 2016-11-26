@@ -1,5 +1,6 @@
 package rwalerow.rest
 
+import akka.http.scaladsl.model.StatusCode
 import cats.data.ValidatedNel
 import cats.data.Validated._
 import cats.data.{NonEmptyList => NEL}
@@ -8,6 +9,15 @@ import cats.syntax.cartesian._
 
 case class CreateDiscussion(subject: String, contents: String, nick: String, email: String)
 case class CreatePost(contents: String, nick: String, email: String)
+
+case class ErrorResponse(code: Int, message: String = "", description: String = "")
+object ErrorResponse {
+  def apply(status: StatusCode, description: String): ErrorResponse =
+    ErrorResponse(status.intValue(), status.reason(), description)
+
+  def apply(status: StatusCode, errors: NEL[String]): ErrorResponse =
+    ErrorResponse(status.intValue(), status.reason(), errors.toList.mkString(", "))
+}
 
 object CommonValidations {
   def validateEmail(email: String): ValidatedNel[String, Email] =

@@ -10,6 +10,7 @@ import org.scalatest.Matchers
 import rwalerow.domain.JsonProtocol._
 import rwalerow.domain._
 import org.specs2.matcher.AnyMatchers
+import rwalerow.rest
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
@@ -71,8 +72,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
       Post("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true
         status shouldEqual BadRequest
-        responseAs[List[String]].isEmpty shouldEqual false
-        responseAs[List[String]] should contain theSameElementsAs List("Invalid address email format", "Nick is to long")
+        responseAs[ErrorResponse] shouldEqual ErrorResponse(BadRequest, "Invalid address email format, Nick is to long")
       }
     }
   }

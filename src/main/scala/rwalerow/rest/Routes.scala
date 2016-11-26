@@ -28,7 +28,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
     onComplete(modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)) {
       case Success(discussions) => complete(discussions)
-      case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+      case Failure(err) => complete(InternalServerError ->  ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
     }
   }
 
@@ -51,10 +51,10 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
           } yield createdPostId
 
           onComplete(response) {
-            case Success(_) => complete(HttpResponse(status = Created, entity = post.secret.value))
-            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
+            case Success(_) => complete(Created -> post.secret)
+            case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
-        case Invalid(errors) => complete(BadRequest, errors.toList)
+        case Invalid(errors) => complete(BadRequest -> ErrorResponse(BadRequest, errors))
       }
     }
   }
@@ -73,10 +73,10 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
         } yield posts
         onComplete(responseQuery) {
           case Success(postsResult) => complete(postsResult)
-          case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+          case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
         }
-      case Success(None) => complete(HttpResponse(status = BadRequest, entity = "Post not found"))
-      case Failure(err) => complete(InternalServerError, s"Error occurred ${err.getMessage}")
+      case Success(None) => complete(BadRequest -> ErrorResponse(BadRequest, "Post not found"))
+      case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
     }
   }
 
@@ -101,10 +101,10 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
           } yield createPostId
 
           onComplete(query) {
-            case Success(_) => complete(HttpResponse(status = Created, entity = post.secret.value))
-            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
+            case Success(_) => complete(Created -> post.secret)
+            case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
-        case Invalid(errors) => complete(BadRequest, errors.toList)
+        case Invalid(errors) => complete(BadRequest -> ErrorResponse(BadRequest, errors))
       }
     }
   }
@@ -112,8 +112,8 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   def deletePost = (postRoute & delete) { discussionId =>
     entity(as[Secret]) { secret =>
       onComplete(modules.extendedPostQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === secret}) {
-        case Success(_) => complete(HttpResponse(status = OK))
-        case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
+        case Success(_) => complete(HttpResponse(OK))
+        case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
       }
     }
   }
@@ -122,8 +122,9 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
       put {
         entity(as[Contents]) { contents =>
           onComplete(modules.extendedPostQueries.updateBySecret(Secret(secret), contents)) {
+            case Success(0) => complete(NotFound -> ErrorResponse(NotFound, s"Post with secret:$secret not found in discussion id:$discussionId"))
             case Success(_) => complete(HttpResponse(OK))
-            case Failure(err) => complete(HttpResponse(status = BadRequest, entity = err.getMessage))
+            case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
         }
       }
