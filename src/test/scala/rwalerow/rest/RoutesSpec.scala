@@ -130,7 +130,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     "update post based on secret" in new Mocks {
       val secret = Secret("abcdefg")
       val contents = Contents("new contetns")
-      modules.extendedPostQueries.updateBySecret(secret, contents) returns Future(1)
+      modules.extendedPostQueries.updateBySecret(1L, secret, contents) returns Future(1)
 
       Put(s"/discussion/1/post/${secret.value}", contents) ~> discussionRoutes.routes ~> check {
         handled shouldEqual true

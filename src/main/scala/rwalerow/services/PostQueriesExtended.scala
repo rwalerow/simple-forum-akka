@@ -15,9 +15,9 @@ class PostQueriesExtended(implicit override val db: JdbcProfile#Backend#Database
 
   import profile.api._
 
-  def updateBySecret(secret: Secret, contents: Contents): Future[Int] = db.run {
+  def updateBySecret(discussionId: Long, secret: Secret, contents: Contents): Future[Int] = db.run {
     val content = for {
-      p <- tableQuery if p.secret === secret
+      p <- tableQuery if p.secret === secret && p.discussionId === discussionId
     } yield p.contents
     content.update(contents)
   }

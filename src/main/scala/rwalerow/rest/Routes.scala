@@ -118,10 +118,10 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def updatePost = (postRoute & path(Segment)){ (discussionId, secret) =>
+  def updatePost = (postRoute & path(Segment)) { (discussionId, secret) =>
       put {
         entity(as[Contents]) { contents =>
-          onComplete(modules.extendedPostQueries.updateBySecret(Secret(secret), contents)) {
+          onComplete(modules.extendedPostQueries.updateBySecret(discussionId, Secret(secret), contents)) {
             case Success(0) => complete(NotFound -> ErrorResponse(NotFound, s"Post with secret:$secret not found in discussion id:$discussionId"))
             case Success(_) => complete(HttpResponse(OK))
             case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
