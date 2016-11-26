@@ -28,7 +28,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
     onComplete(modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)) {
       case Success(discussions) => complete(discussions)
-      case Failure(err) => complete(InternalServerError ->  ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
+      case Failure(err) => complete(InternalServerError ->  ErrorResponse(InternalServerError, err.getMessage))
     }
   }
 
@@ -73,10 +73,10 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
         } yield posts
         onComplete(responseQuery) {
           case Success(postsResult) => complete(postsResult)
-          case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
+          case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
         }
       case Success(None) => complete(BadRequest -> ErrorResponse(BadRequest, "Post not found"))
-      case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, s"Error occurred ${err.getMessage}"))
+      case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
   }
 

@@ -23,5 +23,4 @@ class PostCalculationsSpec extends WordSpec with Matchers {
       calculateBeforeAndAfter(50, 100, 50) shouldEqual (16, 33)
     }
   }
-
 }
