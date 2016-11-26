@@ -6,12 +6,13 @@ import java.time.LocalDateTime
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.Directives
+import akka.http.scaladsl.server.{Directives, MalformedRequestContentRejection, RejectionHandler}
 import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
 import rwalerow.utils.{Configuration, PersistenceModule}
 import rwalerow.domain.JsonProtocol._
 import rwalerow.services.PostCalculations
+import rwalerow.rest.RejectionHandlers._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import slick.driver.PostgresDriver.api._
@@ -33,7 +34,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   }
 
   def discussionCreateRoute = pathPrefix("discussion") {
-    (pathEnd & post & entity(as[CreateDiscussion])) { createD =>
+    (pathEnd & post & handleRejections(handlerWithMessage(createDiscussionMessage)) & entity(as[CreateDiscussion])) { createD =>
       CreateDiscussion.validate(createD) match {
         case Valid(createDiscussion) =>
           val discussion = Discussion(subject = Subject(createDiscussion.subject))
@@ -83,7 +84,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   val postRoute = pathPrefix("discussion" / LongNumber / "post")
 
   def createPost = (postRoute & post) { discussionId =>
-    entity(as[CreatePost]) { createP =>
+    (handleRejections(handlerWithMessage(createPostMessage)) & entity(as[CreatePost])) { createP =>
       CreatePost.validate(createP) match {
         case Valid(createPost) =>
           val post = Post(
@@ -109,18 +110,16 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def deletePost = (postRoute & delete) { discussionId =>
-    entity(as[Secret]) { secret =>
-      onComplete(modules.extendedPostQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === secret}) {
-        case Success(_) => complete(HttpResponse(OK))
-        case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
-      }
+  def deletePost = (postRoute & path(Segment) & delete) { (discussionId, secret) =>
+    onComplete(modules.extendedPostQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === Secret(secret)}) {
+      case Success(_) => complete(HttpResponse(OK))
+      case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
   }
 
   def updatePost = (postRoute & path(Segment)) { (discussionId, secret) =>
       put {
-        entity(as[Contents]) { contents =>
+        (handleRejections(handlerWithMessage(contentsMessage)) & entity(as[Contents])) { contents =>
           onComplete(modules.extendedPostQueries.updateBySecret(discussionId, Secret(secret), contents)) {
             case Success(0) => complete(NotFound -> ErrorResponse(NotFound, s"Post with secret:$secret not found in discussion id:$discussionId"))
             case Success(_) => complete(HttpResponse(OK))
