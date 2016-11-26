@@ -11,7 +11,7 @@ import scala.util.{Failure, Success, Try}
 object JsonProtocol extends DefaultJsonProtocol {
 
   implicit val nickProtocol = jsonFormat1(Nick.apply)
-  implicit val contentsProtocol = jsonFormat1(Contents)
+  implicit val contentsProtocol = jsonFormat1(Contents.apply)
   implicit val emailProtocol = jsonFormat1(Email.apply)
   implicit val secretProtocol = jsonFormat1(Secret.apply)
   implicit val subjectProtocol = jsonFormat1(Subject.apply)

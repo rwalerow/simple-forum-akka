@@ -17,7 +17,9 @@ case class Nick(value: String) extends MappedTo[String] {
   require(Nick.isValid(value), "Nick is to long")
 }
 case class Secret(value: String) extends MappedTo[String]
-case class Contents(value: String) extends MappedTo[String]
+case class Contents(value: String) extends MappedTo[String] {
+  require(Contents.isValid(value), "Contents is to long")
+}
 case class Post(id: Option[Long] = None, nick: Nick, contents: Contents, email: Email, createDate: Timestamp, secret: Secret, discussionId: Long) extends BaseEntity
 
 
@@ -43,4 +45,7 @@ object Subject {
 object Secret {
   val secretLength = 40
   def generate: String = Random.alphanumeric.take(secretLength).mkString
+}
+object Contents {
+  def isValid(contents: String): Boolean = contents.length < 2000
 }

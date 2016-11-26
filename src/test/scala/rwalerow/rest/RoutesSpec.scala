@@ -10,12 +10,11 @@ import org.scalatest.Matchers
 import rwalerow.domain.JsonProtocol._
 import rwalerow.domain._
 import org.specs2.matcher.AnyMatchers
-import rwalerow.rest
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
-class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers{
+class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
 
   trait Mocks {
     def actorRefFactory = system

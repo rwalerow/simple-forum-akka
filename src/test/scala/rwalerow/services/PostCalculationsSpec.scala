@@ -1,11 +1,11 @@
-package rwalerow.rest
+package rwalerow.services
 
-import org.scalatest.{FlatSpec, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 import rwalerow.services.PostCalculations._
 
 class PostCalculationsSpec extends WordSpec with Matchers {
 
-  "PostCalculationsSpec" should {
+  "PostCalculationsSpec for calculate before and after" should {
 
     "calculateBeforeAndAfter for 0,0" in {
       calculateBeforeAndAfter(0, 0, 10) shouldEqual (0,0)
