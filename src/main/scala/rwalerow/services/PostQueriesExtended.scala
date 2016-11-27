@@ -26,7 +26,7 @@ class PostQueriesExtended(implicit override val db: JdbcProfile#Backend#Database
     tableQuery
       .filter(_.discussionId === discusisonId)
       .filter(f)
-      .countDistinct.result
+      .length.result
   }
 
   def countBefore(discussionId: Long, date: Timestamp): Future[Int] = countBy(discussionId, _.createDate < date)
