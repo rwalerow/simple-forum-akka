@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
-import akka.http.scaladsl.server.{Directives, MalformedRequestContentRejection, RejectionHandler}
+import akka.http.scaladsl.server.Directives
 import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
 import rwalerow.utils.{Configuration, PersistenceModule}

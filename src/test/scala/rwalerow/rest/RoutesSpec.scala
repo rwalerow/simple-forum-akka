@@ -9,6 +9,7 @@ import org.mockito.Mockito._
 import org.scalatest.Matchers
 import rwalerow.domain.JsonProtocol._
 import rwalerow.domain._
+import rwalerow.rest.RejectionHandlers._
 import org.specs2.matcher.AnyMatchers
 
 import scala.concurrent.Future
@@ -19,7 +20,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
   trait Mocks {
     def actorRefFactory = system
     val modules = new Modules {}
-    val discussionRoutes = new Routes(modules)
+    val routes = new Routes(modules).routes
   }
 
   "Discussion routes" should {
@@ -28,7 +29,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
       modules.conf.getInt(anyString) returns 10
 
-      Get("/discussions") ~> discussionRoutes.routes ~> check {
+      Get("/discussions") ~> routes ~> check {
         handled shouldEqual true
         responseAs[List[Discussion]].isEmpty shouldEqual true
       }
@@ -38,7 +39,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
       modules.conf.getInt(anyString) returns 10
 
-      Get("/discussions?limit=2") ~> discussionRoutes.routes ~> check {
+      Get("/discussions?limit=2") ~> routes ~> check {
         handled shouldEqual true
         verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(2)), offset = anyInt)
       }
@@ -48,7 +49,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
       modules.conf.getInt(anyString) returns 10
 
-      Get("/discussions?limit=22") ~> discussionRoutes.routes ~> check {
+      Get("/discussions?limit=22") ~> routes ~> check {
         handled shouldEqual true
         verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(10)), offset = anyInt)
       }
@@ -58,7 +59,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.discussionQueries.insert(any[Discussion]) returns Future(1)
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
 
-      Post("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> discussionRoutes.routes ~> check {
+      Post("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         verify(modules.extendedPostQueries).insert(any[Post])
@@ -68,10 +69,18 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
 
     "invalid discussion be filtered" in new Mocks {
       val invalidDiscussion = CreateDiscussion("subject", "contents", "thisisrealytolongnickforittobetrueandnoteasytoremember", "gmail.com")
-      Post("/discussion", invalidDiscussion) ~> discussionRoutes.routes ~> check {
+      Post("/discussion", invalidDiscussion) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual BadRequest
         responseAs[ErrorResponse] shouldEqual ErrorResponse(BadRequest, "Invalid address email format, Nick is to long")
+      }
+    }
+
+    "correctly respond to insert without body" in new Mocks {
+      Post("/discussion") ~> routes ~> check {
+        handled shouldBe true
+        response.status shouldEqual BadRequest
+        responseAs[ErrorResponse] shouldEqual ErrorResponse(BadRequest, baseMessage + createDiscussionMessage)
       }
     }
   }
@@ -84,7 +93,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.extendedPostQueries.insert(any[Post]) returns Future(1)
       modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
 
-      Post("/discussion/1/post", validPost) ~> discussionRoutes.routes ~> check {
+      Post("/discussion/1/post", validPost) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         responseAs[String].length > 0 shouldEqual true
@@ -96,12 +105,20 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       }
     }
 
+    "correctly reject create without entity" in new Mocks {
+      Post("/discussion/1/post") ~> routes ~> check {
+        handled shouldBe true
+        response.status shouldEqual BadRequest
+        responseAs[ErrorResponse] shouldEqual ErrorResponse(BadRequest, baseMessage + createPostMessage )
+      }
+    }
+
     "delete valid post" in new Mocks {
       val secret = "abcdefghijklmnoprstuwxyz"
       def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === Secret(secret)
       modules.extendedPostQueries.deleteByFilter(f) returns Future(1)
 
-      Delete("/discussion/1/post/" + secret, secret) ~> discussionRoutes.routes ~> check {
+      Delete("/discussion/1/post/" + secret, secret) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
         verify(modules.extendedPostQueries).deleteByFilter(f)
@@ -121,7 +138,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       modules.extendedPostQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
       modules.extendedPostQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
 
-      Get("/discussion/1/posts/1") ~> discussionRoutes.routes ~> check {
+      Get("/discussion/1/posts/1") ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
       }
@@ -132,9 +149,17 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       val contents = Contents("new contetns")
       modules.extendedPostQueries.updateBySecret(1L, secret, contents) returns Future(1)
 
-      Put(s"/discussion/1/post/${secret.value}", contents) ~> discussionRoutes.routes ~> check {
+      Put(s"/discussion/1/post/${secret.value}", contents) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
+      }
+    }
+
+    "correctly respond to update without body" in new Mocks {
+      Put("/discussion/1/post/somesecret") ~> routes ~> check {
+        handled shouldBe true
+        response.status shouldEqual BadRequest
+        responseAs[ErrorResponse] shouldEqual ErrorResponse(BadRequest, baseMessage + contentsMessage)
       }
     }
   }
