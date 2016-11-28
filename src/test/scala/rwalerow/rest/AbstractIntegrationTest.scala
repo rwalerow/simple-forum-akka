@@ -18,8 +18,8 @@ class AbstractIntegrationTest extends WordSpec with Matchers with ScalatestRoute
     override implicit val db: JdbcProfile#Backend#Database = dbConfig.db
 
     val system = AbstractIntegrationTest.this.system
-    override val extendedPostQueries = new PostQueriesExtended
-    override val discussionQueries = new DiscussionQueriesExtended(extendedPostQueries.tableQuery)
+    override val postQueries = new PostQueriesExtended
+    override val discussionQueries = new DiscussionQueriesExtended(postQueries.tableQuery)
 
     override def config = configDefault
   }

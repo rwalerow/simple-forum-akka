@@ -57,12 +57,12 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
 
     "valid discussion be created" in new Mocks {
       modules.discussionQueries.insert(any[Discussion]) returns Future(1)
-      modules.extendedPostQueries.insert(any[Post]) returns Future(1)
+      modules.postQueries.insert(any[Post]) returns Future(1)
 
       Post("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        verify(modules.extendedPostQueries).insert(any[Post])
+        verify(modules.postQueries).insert(any[Post])
         verify(modules.discussionQueries).insert(any[Discussion])
       }
     }
@@ -90,7 +90,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     "create a valid post" in new Mocks {
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
       val discussion = Discussion(Some(1), Subject("subject"))
-      modules.extendedPostQueries.insert(any[Post]) returns Future(1)
+      modules.postQueries.insert(any[Post]) returns Future(1)
       modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
 
       Post("/discussion/1/post", validPost) ~> routes ~> check {
@@ -116,12 +116,12 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     "delete valid post" in new Mocks {
       val secret = "abcdefghijklmnoprstuwxyz"
       def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === Secret(secret)
-      modules.extendedPostQueries.deleteByFilter(f) returns Future(1)
+      modules.postQueries.deleteByFilter(f) returns Future(1)
 
       Delete("/discussion/1/post/" + secret, secret) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
-        verify(modules.extendedPostQueries).deleteByFilter(f)
+        verify(modules.postQueries).deleteByFilter(f)
       }
     }
 
@@ -133,10 +133,10 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.extendedPostQueries.countBefore(anyInt, any[Timestamp]) returns Future(0)
-      modules.extendedPostQueries.countAfter(anyInt, any[Timestamp]) returns Future(0)
-      modules.extendedPostQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
-      modules.extendedPostQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
+      modules.postQueries.countBefore(anyInt, any[Timestamp]) returns Future(0)
+      modules.postQueries.countAfter(anyInt, any[Timestamp]) returns Future(0)
+      modules.postQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
+      modules.postQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
 
       Get("/discussion/1/posts/1") ~> routes ~> check {
         handled shouldEqual true
@@ -147,7 +147,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     "update post based on secret" in new Mocks {
       val secret = Secret("abcdefg")
       val contents = Contents("new contetns")
-      modules.extendedPostQueries.updateBySecret(1L, secret, contents) returns Future(1)
+      modules.postQueries.updateBySecret(1L, secret, contents) returns Future(1)
 
       Put(s"/discussion/1/post/${secret.value}", contents) ~> routes ~> check {
         handled shouldEqual true

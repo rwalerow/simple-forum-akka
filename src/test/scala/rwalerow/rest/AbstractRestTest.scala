@@ -16,7 +16,7 @@ trait AbstractRestTest extends WordSpec with Matchers with ScalatestRouteTest wi
   trait Modules extends ConfigurationImpl with PersistenceModule {
     val system = AbstractRestTest.this.system
     override val discussionQueries: DiscussionQueriesExtended = mock[DiscussionQueriesExtended]
-    override val extendedPostQueries: PostQueriesExtended = mock[PostQueriesExtended]
+    override val postQueries: PostQueriesExtended = mock[PostQueriesExtended]
     val conf = mock[Config]
     override def config = conf
   }

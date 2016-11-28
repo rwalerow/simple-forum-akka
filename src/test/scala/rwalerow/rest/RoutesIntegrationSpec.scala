@@ -27,7 +27,7 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
 
   override def afterEach() = {
     Await.result(for {
-    _ <- modules.extendedPostQueries.deleteByFilter(_.id != None)
+    _ <- modules.postQueries.deleteByFilter(_.id != None)
       a <- modules.discussionQueries.deleteByFilter(_.id != None)
     } yield a, 1.second)
   }
@@ -38,7 +38,7 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
     "list discussions properly" in {
       Await.result(for {
         id <- modules.discussionQueries.insert(baseDiscussion)
-        r <- modules.extendedPostQueries.insert(basePost.copy(discussionId = id))
+        r <- modules.postQueries.insert(basePost.copy(discussionId = id))
       } yield r, 1.second)
 
       Get("/discussions") ~> routes ~> check {
@@ -53,9 +53,9 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
 
       Await.result(for {
         id <- modules.discussionQueries.insert(baseDiscussion)
-        _ <- modules.extendedPostQueries.insert(basePost.copy(discussionId = id))
+        _ <- modules.postQueries.insert(basePost.copy(discussionId = id))
         secondId <- modules.discussionQueries.insert(insertDiscussion2)
-        r <- modules.extendedPostQueries.insert(basePost.copy(discussionId = secondId, createDate = Timestamp.valueOf(timeNow.plusMinutes(2L))))
+        r <- modules.postQueries.insert(basePost.copy(discussionId = secondId, createDate = Timestamp.valueOf(timeNow.plusMinutes(2L))))
       } yield r, 1.second)
 
       Get("/discussions") ~> routes ~> check {
@@ -71,7 +71,7 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
         handled shouldEqual true
         val counts = for {
           dCount <- modules.discussionQueries.list
-          pCount <- modules.extendedPostQueries.list
+          pCount <- modules.postQueries.list
         } yield (dCount, pCount)
 
         val (dCount, pCount) = Await.result(counts, 1.second)
@@ -87,13 +87,13 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
       val discId = Await.result(for {
 
         id <- modules.discussionQueries.insert(baseDiscussion)
-        _ <- modules.extendedPostQueries.insert(basePost.copy(discussionId = id))
+        _ <- modules.postQueries.insert(basePost.copy(discussionId = id))
       } yield id, 1.second)
       
       val createPost = CreatePost(contents = "contents", nick = "nick", email = "email@gmail.com")
 
       Post(s"/discussion/$discId/post", createPost) ~> routes ~> check {
-        val discussionPosts = Await.result(modules.extendedPostQueries.findByFilter(_.discussionId === discId), 1.second)
+        val discussionPosts = Await.result(modules.postQueries.findByFilter(_.discussionId === discId), 1.second)
 
         discussionPosts.toList.size shouldEqual 2
       }
@@ -102,7 +102,7 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
     "properly list posts" in {
       val timeNow = LocalDateTime.now()
       def insertPostWith(post: DPost, nick: String, secondBefore: Long) =
-        modules.extendedPostQueries.insert(
+        modules.postQueries.insert(
           post.copy(nick = Nick(nick), createDate = Timestamp.valueOf(timeNow.minusDays(secondBefore)))
         )
 
@@ -117,7 +117,7 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
         _     <- insertPostWith(extPost, "6", 3L)
         _     <- insertPostWith(extPost, "7", 2L)
         _     <- insertPostWith(extPost, "8", 1L)
-        post <- modules.extendedPostQueries.findById(postId)
+        post <- modules.postQueries.findById(postId)
       } yield post, 1.second)
 
       postForTest.isDefined shouldEqual true

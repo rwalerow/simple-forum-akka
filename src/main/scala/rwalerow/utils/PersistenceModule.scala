@@ -18,7 +18,7 @@ trait DbModule extends Profile {
 
 trait PersistenceModule {
   val discussionQueries: DiscussionQueriesExtended
-  val extendedPostQueries: PostQueriesExtended
+  val postQueries: PostQueriesExtended
 }
 
 trait PersistenceModuleImpl extends PersistenceModule with DbModule {
@@ -28,8 +28,8 @@ trait PersistenceModuleImpl extends PersistenceModule with DbModule {
   override implicit val profile: JdbcProfile = dbConfig.driver
   override implicit val db: JdbcBackend#DatabaseDef = dbConfig.db
 
-  override val extendedPostQueries = new PostQueriesExtended
-  override val discussionQueries = new DiscussionQueriesExtended(extendedPostQueries.tableQuery)
+  override val postQueries = new PostQueriesExtended
+  override val discussionQueries = new DiscussionQueriesExtended(postQueries.tableQuery)
 }
 
 

@@ -48,7 +48,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
           )
           val response = for {
             createdId <- modules.discussionQueries.insert(discussion)
-            createdPostId <- modules.extendedPostQueries.insert(post.copy(discussionId = createdId))
+            createdPostId <- modules.postQueries.insert(post.copy(discussionId = createdId))
           } yield createdPostId
 
           onComplete(response) {
@@ -64,13 +64,13 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
     val configLimit = modules.config.getInt("limit.posts")
 
-    onComplete(modules.extendedPostQueries.postWithIndex(discussionId, postId)) {
+    onComplete(modules.postQueries.postWithIndex(discussionId, postId)) {
       case Success(Some((post, index))) =>
         val responseQuery = for {
-          before                  <- modules.extendedPostQueries.countBefore(discussionId, post.createDate)
-          after                   <- modules.extendedPostQueries.countAfter(discussionId, post.createDate)
+          before                  <- modules.postQueries.countBefore(discussionId, post.createDate)
+          after                   <- modules.postQueries.countAfter(discussionId, post.createDate)
           (takeBefore, takeAfter) = if((before + after + 1) > configLimit) PostCalculations.calculateBeforeAndAfter(before, after, configLimit) else (before, after)
-          posts                   <- modules.extendedPostQueries.findInRange(takeBefore, takeAfter, index, discussionId)
+          posts                   <- modules.postQueries.findInRange(takeBefore, takeAfter, index, discussionId)
         } yield posts
         onComplete(responseQuery) {
           case Success(postsResult) => complete(postsResult)
@@ -98,7 +98,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
 
           val query = for {
             exists <- modules.discussionQueries.findById(discussionId) if exists.isDefined
-            createPostId <- modules.extendedPostQueries.insert(post)
+            createPostId <- modules.postQueries.insert(post)
           } yield createPostId
 
           onComplete(query) {
@@ -111,7 +111,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   }
 
   def deletePost = (postRoute & path(Segment) & delete) { (discussionId, secret) =>
-    onComplete(modules.extendedPostQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === Secret(secret)}) {
+    onComplete(modules.postQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === Secret(secret)}) {
       case Success(_) => complete(HttpResponse(OK))
       case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
@@ -120,7 +120,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
   def updatePost = (postRoute & path(Segment)) { (discussionId, secret) =>
       put {
         (handleRejections(handlerWithMessage(contentsMessage)) & entity(as[Contents])) { contents =>
-          onComplete(modules.extendedPostQueries.updateBySecret(discussionId, Secret(secret), contents)) {
+          onComplete(modules.postQueries.updateBySecret(discussionId, Secret(secret), contents)) {
             case Success(0) => complete(NotFound -> ErrorResponse(NotFound, s"Post with secret:$secret not found in discussion id:$discussionId"))
             case Success(_) => complete(HttpResponse(OK))
             case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
