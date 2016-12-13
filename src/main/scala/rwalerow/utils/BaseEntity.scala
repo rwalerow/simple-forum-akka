@@ -31,21 +31,30 @@ trait BaseDao[T, A] {
   def list: Future[Seq[A]]
 }
 
+trait BaseDBIODao[T, A] {
+  def insertQ(row: A): DBIO[Long]
+  def insertQ(rows: Seq[A]): DBIO[Seq[Long]]
+}
+
 trait WithTableQuery[T <: BaseTable[A], A <: BaseEntity] {
   val tableQuery: TableQuery[T]
 }
 
 class BaseDaoImpl[T <: BaseTable[A], A <: BaseEntity](val tableQuery: TableQuery[T])
     (implicit val db: JdbcProfile#Backend#Database, implicit val profile: JdbcProfile)
-    extends BaseDao[T, A] with Profile with DbModule with WithTableQuery[T, A] {
+    extends BaseDao[T, A] with BaseDBIODao[T, A] with Profile with DbModule with WithTableQuery[T, A] {
 
   import profile.api._
 
-  override def insert(row: A): Future[Long] = insert(Seq(row)).map(_.head)
+  override def insert(row: A): Future[Long] = db.run(insertQ(row))
 
-  override def insert(rows: Seq[A]): Future[Seq[Long]] = db.run(
+  override def insert(rows: Seq[A]): Future[Seq[Long]] = db.run(insertQ(rows))
+
+  override def insertQ(row: A): DBIO[Long] = insertQ(Seq(row)).map(_.head)
+
+  override def insertQ(rows: Seq[A]): DBIO[Seq[Long]] = {
     tableQuery returning tableQuery.map(_.id) ++= rows
-  )
+  }
 
   override def update(row: A): Future[Int] = db.run(
     tableQuery.filter(_.id === row.id).update(row)

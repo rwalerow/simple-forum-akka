@@ -1,6 +1,6 @@
 package rwalerow.utils
 
-import rwalerow.services.{DiscussionQueriesExtended, PostQueriesExtended}
+import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcBackend
@@ -21,7 +21,11 @@ trait PersistenceModule {
   val postQueries: PostQueriesExtended
 }
 
-trait PersistenceModuleImpl extends PersistenceModule with DbModule {
+trait RestLogicServices {
+  val discussionService: DiscussionRestLogicService
+}
+
+trait PersistenceModuleImpl extends PersistenceModule with DbModule with RestLogicServices {
   this: Configuration =>
 
   private val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig("postgres")
@@ -29,7 +33,9 @@ trait PersistenceModuleImpl extends PersistenceModule with DbModule {
   override implicit val db: JdbcBackend#DatabaseDef = dbConfig.db
 
   override val postQueries = new PostQueriesExtended
-  override val discussionQueries = new DiscussionQueriesExtended(postQueries.tableQuery)
+  override val discussionQueries = new DiscussionQueriesExtended(postQueries)
+
+  override val discussionService: DiscussionRestLogicService = new DiscussionRestLogicService(this)
 }
 
 

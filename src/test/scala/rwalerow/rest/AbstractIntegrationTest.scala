@@ -3,14 +3,14 @@ package rwalerow.rest
 import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}
-import rwalerow.services.{DiscussionQueriesExtended, PostQueriesExtended}
-import rwalerow.utils.{Configuration, DbModule, PersistenceModule}
+import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended}
+import rwalerow.utils.{Configuration, DbModule, PersistenceModule, RestLogicServices}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 
 class AbstractIntegrationTest extends WordSpec with Matchers with ScalatestRouteTest {
 
-  trait Modules extends Configuration with PersistenceModule with DbModule {
+  trait Modules extends Configuration with PersistenceModule with DbModule with RestLogicServices {
 
     val configDefault = ConfigFactory.load("application-test.conf")
     private val dbConfig : DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig("postgrestest", configDefault)
@@ -19,7 +19,9 @@ class AbstractIntegrationTest extends WordSpec with Matchers with ScalatestRoute
 
     val system = AbstractIntegrationTest.this.system
     override val postQueries = new PostQueriesExtended
-    override val discussionQueries = new DiscussionQueriesExtended(postQueries.tableQuery)
+    override val discussionQueries = new DiscussionQueriesExtended(postQueries)
+
+    override val discussionService: DiscussionRestLogicService = new DiscussionRestLogicService(this)
 
     override def config = configDefault
   }

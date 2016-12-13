@@ -9,7 +9,7 @@ import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives
 import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
-import rwalerow.utils.{Configuration, PersistenceModule}
+import rwalerow.utils.{Configuration, PersistenceModule, RestLogicServices}
 import rwalerow.domain.JsonProtocol._
 import rwalerow.services.PostCalculations
 import rwalerow.rest.RejectionHandlers._
@@ -19,7 +19,7 @@ import slick.driver.PostgresDriver.api._
 
 import scala.util.{Failure, Success}
 
-class Routes(modules: Configuration with PersistenceModule) extends Directives {
+class Routes(modules: Configuration with PersistenceModule with RestLogicServices) extends Directives {
 
   def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & parameters('limit.as[Int].?, 'offset.as[Int].?)) { (limit, offset) =>
 
@@ -33,26 +33,12 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def discussionCreateRoute = pathPrefix("discussion") {
+  def createDiscussionRoute = pathPrefix("discussion") {
     (pathEnd & post & handleRejections(handlerWithMessage(createDiscussionMessage)) & entity(as[CreateDiscussion])) { createD =>
       CreateDiscussion.validate(createD) match {
         case Valid(createDiscussion) =>
-          val discussion = Discussion(subject = Subject(createDiscussion.subject))
-          val post = Post(
-            nick = Nick(createDiscussion.nick),
-            contents = Contents(createDiscussion.contents),
-            email = Email(createDiscussion.email),
-            secret = Secret(Secret.generate),
-            createDate = Timestamp.valueOf(LocalDateTime.now()),
-            discussionId = 0L
-          )
-          val response = for {
-            createdId <- modules.discussionQueries.insert(discussion)
-            createdPostId <- modules.postQueries.insert(post.copy(discussionId = createdId))
-          } yield createdPostId
-
-          onComplete(response) {
-            case Success(_) => complete(Created -> post.secret)
+          onComplete(modules.discussionService.createDiscussion(createDiscussion)) {
+            case Success(secret) => complete(Created -> secret)
             case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
         case Invalid(errors) => complete(BadRequest -> ErrorResponse(BadRequest, errors))
@@ -60,7 +46,7 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def getPosts = (path("discussion" / LongNumber / "posts" / LongNumber) & get) { (discussionId, postId) =>
+  def getPostsRoute = (path("discussion" / LongNumber / "posts" / LongNumber) & get) { (discussionId, postId) =>
 
     val configLimit = modules.config.getInt("limit.posts")
 
@@ -81,9 +67,9 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  val postRoute = pathPrefix("discussion" / LongNumber / "post")
+  val postRoutePrefix = pathPrefix("discussion" / LongNumber / "post")
 
-  def createPost = (postRoute & post) { discussionId =>
+  def createPostRoute = (postRoutePrefix & post) { discussionId =>
     (handleRejections(handlerWithMessage(createPostMessage)) & entity(as[CreatePost])) { createP =>
       CreatePost.validate(createP) match {
         case Valid(createPost) =>
@@ -110,14 +96,14 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
     }
   }
 
-  def deletePost = (postRoute & path(Segment) & delete) { (discussionId, secret) =>
+  def deletePostRoute = (postRoutePrefix & path(Segment) & delete) { (discussionId, secret) =>
     onComplete(modules.postQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === Secret(secret)}) {
       case Success(_) => complete(HttpResponse(OK))
       case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
   }
 
-  def updatePost = (postRoute & path(Segment)) { (discussionId, secret) =>
+  def updatePostRoute = (postRoutePrefix & path(Segment)) { (discussionId, secret) =>
       put {
         (handleRejections(handlerWithMessage(contentsMessage)) & entity(as[Contents])) { contents =>
           onComplete(modules.postQueries.updateBySecret(discussionId, Secret(secret), contents)) {
@@ -129,5 +115,5 @@ class Routes(modules: Configuration with PersistenceModule) extends Directives {
       }
   }
 
-  val routes = discussionListRoute ~ discussionCreateRoute ~ getPosts ~ createPost ~ deletePost ~ updatePost
+  val routes = discussionListRoute ~ createDiscussionRoute ~ getPostsRoute ~ createPostRoute ~ deletePostRoute ~ updatePostRoute
 }

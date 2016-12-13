@@ -56,14 +56,13 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     }
 
     "valid discussion be created" in new Mocks {
-      modules.discussionQueries.insert(any[Discussion]) returns Future(1)
-      modules.postQueries.insert(any[Post]) returns Future(1)
+      val validCreateDiscussion = CreateDiscussion("subject", "contents", "nick", "email@gmail.com")
+      modules.discussionService.createDiscussion(any[CreateDiscussion]) returns Future(Secret("secret"))
 
-      Post("/discussion", CreateDiscussion("subject", "contents", "nick", "email@gmail.com")) ~> routes ~> check {
+      Post("/discussion", validCreateDiscussion) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        verify(modules.postQueries).insert(any[Post])
-        verify(modules.discussionQueries).insert(any[Discussion])
+        verify(modules.discussionService).createDiscussion(any[CreateDiscussion])
       }
     }
 

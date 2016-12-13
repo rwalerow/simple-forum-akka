@@ -1,13 +1,14 @@
 package rwalerow.services
 
-import rwalerow.domain.{Discussion, Discussions, Posts}
-import rwalerow.utils.BaseDaoImpl
+import rwalerow.domain._
+import rwalerow.utils.{BaseDBIODao, BaseDao, BaseDaoImpl, WithTableQuery}
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class DiscussionQueriesExtended(posts: TableQuery[Posts])
+class DiscussionQueriesExtended(posts: BaseDBIODao[Posts, Post] with WithTableQuery[Posts, Post])
                                (implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)
   extends BaseDaoImpl[Discussions, Discussion](TableQuery[Discussions]){
 
@@ -15,7 +16,7 @@ class DiscussionQueriesExtended(posts: TableQuery[Posts])
 
   def listDiscussionByPostDates(limit: Int = 50, offset: Int = 0): Future[Seq[Discussion]] = db.run {
     val newestPost = for {
-          (disId, p) <- posts.groupBy{_.discussionId}
+          (disId, p) <- posts.tableQuery.groupBy{_.discussionId}
         } yield disId -> p.map(_.createDate).max
 
     val discussionWithDate = for {
@@ -27,5 +28,14 @@ class DiscussionQueriesExtended(posts: TableQuery[Posts])
       .drop(offset)
       .take(limit)
       .map(_._1).result
+  }
+
+  def createDiscussion(discussion: Discussion, post: Post): Future[Secret] = {
+    val createDiscussion = (for {
+      createdId <- insertQ(discussion)
+      createdPostId <- posts.insertQ(post.copy(discussionId = createdId))
+    } yield post.secret).transactionally
+
+    db.run(createDiscussion)
   }
 }
