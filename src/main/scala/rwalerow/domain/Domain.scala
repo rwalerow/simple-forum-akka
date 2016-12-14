@@ -10,22 +10,13 @@ import scala.util.Random
 /**
   * Domain
   */
-case class Email(value: String) extends MappedTo[String] {
-  require(Email.isValid(value), "Invalid address email format")
-}
-case class Nick(value: String) extends MappedTo[String] {
-  require(Nick.isValid(value), "Nick is to long")
-}
+case class Email(value: String) extends MappedTo[String]
+case class Nick(value: String) extends MappedTo[String]
 case class Secret(value: String) extends MappedTo[String]
-case class Contents(value: String) extends MappedTo[String] {
-  require(Contents.isValid(value), "Contents is to long")
-}
+case class Contents(value: String) extends MappedTo[String]
 case class Post(id: Option[Long] = None, nick: Nick, contents: Contents, email: Email, createDate: Timestamp, secret: Secret, discussionId: Long) extends BaseEntity
 
-
-case class Subject(value: String) extends MappedTo[String] {
-  require(Subject.isValid(value), "Subject is to long")
-}
+case class Subject(value: String) extends MappedTo[String]
 case class Discussion(id: Option[Long] = None, subject: Subject) extends BaseEntity
 
 /**
