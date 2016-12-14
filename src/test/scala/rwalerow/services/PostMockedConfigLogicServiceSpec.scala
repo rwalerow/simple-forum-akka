@@ -25,6 +25,4 @@ class PostMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with Mat
       verify(modules.postQueries).createPost(any[Post])
     }
   }
-
-  ""
 }

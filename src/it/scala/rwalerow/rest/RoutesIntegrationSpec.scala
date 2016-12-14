@@ -1,16 +1,16 @@
 package rwalerow.rest
 
-import org.scalatest.{BeforeAndAfterEach, Matchers}
-import rwalerow.domain._
-import rwalerow.domain.{Post => DPost}
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import rwalerow.domain.JsonProtocol._
-
-import scala.concurrent.duration._
-import scala.concurrent.Await
-import java.time.LocalDateTime
 import java.sql.Timestamp
+import java.time.LocalDateTime
+
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import org.scalatest.{BeforeAndAfterEach, Matchers}
+import rwalerow.domain.JsonProtocol._
+import rwalerow.domain.{Post => DPost, _}
 import slick.driver.PostgresDriver.api._
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with BeforeAndAfterEach {
 
