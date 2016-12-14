@@ -4,7 +4,8 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.Config
 import org.scalatest.{Matchers, WordSpec}
 import org.specs2.mock.Mockito
-import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended, PostRestLogicService}
+import rwalerow.repository.{DiscussionQueriesExtended, PostQueriesExtended}
+import rwalerow.services.{DiscussionRestLogicService, PostRestLogicService}
 import rwalerow.utils.{ConfigurationImpl, PersistenceModule, RestLogicServices}
 
 /**

@@ -1,7 +1,8 @@
 package rwalerow.utils
 
 import rwalerow.domain.Discussions
-import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended, PostRestLogicService}
+import rwalerow.repository.{DiscussionQueriesExtended, PostQueriesExtended}
+import rwalerow.services.{DiscussionRestLogicService, PostRestLogicService}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcBackend

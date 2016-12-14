@@ -1,4 +1,4 @@
-package rwalerow.services
+package rwalerow.repository
 
 import java.sql.Timestamp
 
@@ -7,8 +7,8 @@ import rwalerow.utils.BaseDaoImpl
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 
 class PostQueriesExtended(discussions: TableQuery[Discussions])(implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)

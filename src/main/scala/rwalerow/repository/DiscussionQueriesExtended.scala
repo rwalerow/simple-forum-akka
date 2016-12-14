@@ -1,12 +1,12 @@
-package rwalerow.services
+package rwalerow.repository
 
 import rwalerow.domain._
 import rwalerow.utils.{BaseDBIODao, BaseDaoImpl, WithTableQuery}
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class DiscussionQueriesExtended(posts: BaseDBIODao[Posts, Post] with WithTableQuery[Posts, Post])
                                (implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)

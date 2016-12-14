@@ -4,7 +4,8 @@ import akka.http.scaladsl.testkit.ScalatestRouteTest
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{Matchers, WordSpec}
 import rwalerow.domain.Discussions
-import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended, PostRestLogicService}
+import rwalerow.repository.{DiscussionQueriesExtended, PostQueriesExtended}
+import rwalerow.services.{DiscussionRestLogicService, PostRestLogicService}
 import rwalerow.utils.{Configuration, DbModule, PersistenceModule, RestLogicServices}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile

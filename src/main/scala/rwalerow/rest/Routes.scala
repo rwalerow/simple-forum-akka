@@ -43,7 +43,7 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
     }
   }
 
-  val postRoutePrefix = pathPrefix("discussion" / LongNumber / "post")
+  private val postRoutePrefix = pathPrefix("discussion" / LongNumber / "post")
 
   def createPostRoute = (postRoutePrefix & post) { discussionId =>
     (handleRejections(handlerWithMessage(createPostMessage)) & entity(as[CreatePost])) { createP =>

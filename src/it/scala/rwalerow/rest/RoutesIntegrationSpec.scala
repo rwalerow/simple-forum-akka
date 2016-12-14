@@ -27,11 +27,10 @@ class RoutesIntegrationSpec extends AbstractIntegrationTest with Matchers with B
 
   override def afterEach() = {
     Await.result(for {
-    _ <- modules.postQueries.deleteByFilter(_.id != None)
+      _ <- modules.postQueries.deleteByFilter(_.id != None)
       a <- modules.discussionQueries.deleteByFilter(_.id != None)
     } yield a, 1.second)
   }
-
 
   "Discussion routes" should {
 
