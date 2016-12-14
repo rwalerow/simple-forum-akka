@@ -1,7 +1,7 @@
 package rwalerow.repository
 
 import rwalerow.domain._
-import rwalerow.utils.{BaseDBIODao, BaseDaoImpl, WithTableQuery}
+import rwalerow.domain.common.{BaseDBIODao, BaseDaoImpl, WithTableQuery}
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 

@@ -3,7 +3,7 @@ package rwalerow.repository
 import java.sql.Timestamp
 
 import rwalerow.domain._
-import rwalerow.utils.BaseDaoImpl
+import rwalerow.domain.common.BaseDaoImpl
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 

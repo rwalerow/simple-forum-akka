@@ -2,7 +2,7 @@ package rwalerow.domain
 
 import java.sql.Timestamp
 
-import rwalerow.utils.BaseEntity
+import rwalerow.domain.common.BaseEntity
 import slick.driver.PostgresDriver.api._
 
 import scala.util.Random

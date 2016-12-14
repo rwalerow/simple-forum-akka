@@ -1,11 +1,12 @@
-package rwalerow.utils
+package rwalerow.domain.common
 
+import rwalerow.utils.{DbModule, Profile}
 import slick.driver.JdbcProfile
 import slick.driver.PostgresDriver.api._
 import slick.lifted.{CanBeQueryCondition, TableQuery}
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 /**
   * source: https://github.com/cdiniz/slick-akka-http/tree/master/src/main/scala/persistence/entities

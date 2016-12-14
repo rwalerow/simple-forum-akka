@@ -1,7 +1,8 @@
 package rwalerow.domain
 
 import java.sql.Timestamp
-import rwalerow.utils.BaseTable
+
+import rwalerow.domain.common.BaseTable
 import slick.driver.PostgresDriver.api._
 
 class Posts(tag: Tag) extends BaseTable[Post](tag, "posts") {
