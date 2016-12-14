@@ -5,11 +5,11 @@ import java.time.LocalDateTime
 
 import rwalerow.domain._
 import rwalerow.rest.CreateDiscussion
-import rwalerow.utils.PersistenceModule
+import rwalerow.utils.{Configuration, PersistenceModule}
 
 import scala.concurrent.Future
 
-class DiscussionRestLogicService(persistence: PersistenceModule) {
+class DiscussionRestLogicService(modules: Configuration with PersistenceModule) {
 
   def createDiscussion(createDiscussion: CreateDiscussion): Future[Secret] = {
     val discussion = Discussion(subject = Subject(createDiscussion.subject))
@@ -22,6 +22,15 @@ class DiscussionRestLogicService(persistence: PersistenceModule) {
       discussionId = 0L
     )
 
-    persistence.discussionQueries.createDiscussion(discussion, post)
+    modules.discussionQueries.createDiscussion(discussion, post)
+  }
+
+  def listDiscussionByPostDates(limit: Option[Int] = None, offset: Option[Int] = None): Future[Seq[Discussion]] = {
+
+    val maxLimit = modules.config.getInt("limit.discussions")
+    val calculatedLimit = limit.filter(_ < maxLimit).getOrElse(maxLimit)
+    val calculatedOffset = offset.getOrElse(0)
+
+    modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)
   }
 }

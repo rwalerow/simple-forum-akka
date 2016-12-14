@@ -15,7 +15,7 @@ import org.specs2.matcher.AnyMatchers
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
-class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
+class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers {
 
   trait Mocks {
     def actorRefFactory = system
@@ -26,7 +26,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
   "Discussion routes" should {
 
     "return empty array of discussions" in new Mocks {
-      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
+      modules.discussionLogicService.listDiscussionByPostDates(any[Option[Int]], any[Option[Int]]) returns Future(List())
       modules.conf.getInt(anyString) returns 10
 
       Get("/discussions") ~> routes ~> check {
@@ -36,22 +36,11 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
     }
 
     "pass url limit to listDiscussions" in new Mocks {
-      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
-      modules.conf.getInt(anyString) returns 10
+      modules.discussionLogicService.listDiscussionByPostDates(any[Option[Int]], any[Option[Int]]) returns Future(List())
 
       Get("/discussions?limit=2") ~> routes ~> check {
         handled shouldEqual true
-        verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(2)), offset = anyInt)
-      }
-    }
-
-    "pass config limit to listDiscussions" in new Mocks {
-      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
-      modules.conf.getInt(anyString) returns 10
-
-      Get("/discussions?limit=22") ~> routes ~> check {
-        handled shouldEqual true
-        verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(10)), offset = anyInt)
+        verify(modules.discussionLogicService).listDiscussionByPostDates(limit = argThat(be_==(Some(2))), offset = any[Option[Int]])
       }
     }
 
@@ -129,7 +118,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.postLogicService.listPosts(anyLong, anyLong, anyInt) returns Future(List(p))
+      modules.postLogicService.listPosts(anyLong, anyLong) returns Future(List(p))
 
       Get("/discussion/1/posts/1") ~> routes ~> check {
         handled shouldEqual true

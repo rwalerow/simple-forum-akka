@@ -25,7 +25,10 @@ class PostRestLogicService(modules: Configuration with PersistenceModule) {
     modules.postQueries.createPost(post)
   }
 
-  def listPosts(discussionId: Long, postId: Long, limit: Int): Future[Seq[Post]] = {
+  def listPosts(discussionId: Long, postId: Long): Future[Seq[Post]] = {
+
+    val limit = modules.config.getInt("limit.posts")
+
     for {
       Some((post, index))     <- modules.postQueries.postWithIndex(discussionId, postId)
       before                  <- modules.postQueries.countBefore(discussionId, post.createDate)

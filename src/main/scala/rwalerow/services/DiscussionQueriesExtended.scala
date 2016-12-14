@@ -30,12 +30,10 @@ class DiscussionQueriesExtended(posts: BaseDBIODao[Posts, Post] with WithTableQu
       .map(_._1).result
   }
 
-  def createDiscussion(discussion: Discussion, post: Post): Future[Secret] = {
-    val createDiscussion = (for {
+  def createDiscussion(discussion: Discussion, post: Post): Future[Secret] = db.run {
+    (for {
       createdId <- insertQ(discussion)
       createdPostId <- posts.insertQ(post.copy(discussionId = createdId))
     } yield post.secret).transactionally
-
-    db.run(createDiscussion)
   }
 }

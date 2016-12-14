@@ -1,8 +1,5 @@
 package rwalerow.rest
 
-import java.sql.Timestamp
-import java.time.LocalDateTime
-
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
@@ -20,12 +17,7 @@ import scala.util.{Failure, Success}
 class Routes(modules: Configuration with PersistenceModule with RestLogicServices) extends Directives {
 
   def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & parameters('limit.as[Int].?, 'offset.as[Int].?)) { (limit, offset) =>
-
-    val maxLimit = modules.config.getInt("limit.discussions")
-    val calculatedLimit = limit.filter(_ < maxLimit).getOrElse(maxLimit)
-    val calculatedOffset = offset.getOrElse(0)
-
-    onComplete(modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)) {
+    onComplete(modules.discussionLogicService.listDiscussionByPostDates(limit, offset)) {
       case Success(discussions) => complete(discussions)
       case Failure(err) => complete(InternalServerError ->  ErrorResponse(InternalServerError, err.getMessage))
     }
@@ -45,10 +37,7 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
   }
 
   def getPostsRoute = (path("discussion" / LongNumber / "posts" / LongNumber) & get) { (discussionId, postId) =>
-
-    val configLimit = modules.config.getInt("limit.posts")
-
-    onComplete(modules.postLogicService.listPosts(discussionId, postId, configLimit)) {
+    onComplete(modules.postLogicService.listPosts(discussionId, postId)) {
       case Success(postsResult) => complete(postsResult)
       case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
