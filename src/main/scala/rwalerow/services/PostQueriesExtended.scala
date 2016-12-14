@@ -2,15 +2,16 @@ package rwalerow.services
 
 import java.sql.Timestamp
 
-import rwalerow.domain.{Contents, Post, Posts, Secret}
+import rwalerow.domain._
 import rwalerow.utils.BaseDaoImpl
 import slick.driver.JdbcProfile
 import slick.lifted.TableQuery
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class PostQueriesExtended(implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)
+class PostQueriesExtended(discussions: TableQuery[Discussions])(implicit override val db: JdbcProfile#Backend#Database, implicit override val profile: JdbcProfile)
   extends BaseDaoImpl[Posts, Post](TableQuery[Posts]) {
 
   import profile.api._
@@ -22,24 +23,33 @@ class PostQueriesExtended(implicit override val db: JdbcProfile#Backend#Database
     content.update(contents)
   }
 
-  def countBy(discusisonId: Long, f: Posts => Rep[Boolean]): Future[Int] = db.run {
+  def countBy(discussionId: Long, f: Posts => Rep[Boolean]): Future[Int] = db.run(countByQ(discussionId, f).result)
+  def countBefore(discussionId: Long, date: Timestamp): Future[Int] = db.run(countPostsBeforeDateC(discussionId, date).result)
+  def countAfter(discussionId: Long, date: Timestamp): Future[Int] = db.run(countPostsAfterDateC(discussionId, date).result)
+
+  private def countByQ(discussionId: Rep[Long], f: Posts => Rep[Boolean]): Rep[Int] =
     tableQuery
-      .filter(_.discussionId === discusisonId)
+      .filter(_.discussionId === discussionId)
       .filter(f)
-      .length.result
-  }
+      .length
 
-  def countBefore(discussionId: Long, date: Timestamp): Future[Int] = countBy(discussionId, _.createDate < date)
-  def countAfter(discussionId: Long, date: Timestamp): Future[Int] = countBy(discussionId, _.createDate > date)
+  private def countBeforeR(discussionId: Rep[Long], date: Rep[Timestamp]): Rep[Int] = countByQ(discussionId, _.createDate < date)
+  private def countAfterR(discussionId: Rep[Long], date: Rep[Timestamp]): Rep[Int] = countByQ(discussionId, _.createDate > date)
+  private val countPostsBeforeDateC = Compiled(countBeforeR _)
+  private val countPostsAfterDateC = Compiled(countAfterR _)
 
-  def postWithIndex(discussionId:Long, id: Long): Future[Option[(Post, Long)]] = db.run {
+  def postWithIndex(discussionId: Long, id: Long): Future[Option[(Post, Long)]] =
+    db.run(findPostWithIndexC(discussionId, id).result.headOption)
+
+  private def postWithIndexR(discussionId: Rep[Long], id: Rep[Long]) =
     tableQuery
       .filter(_.discussionId === discussionId)
       .sortBy(_.createDate)
       .zipWithIndex
       .filter{ case (p, i) => p.id === id }
-      .result.headOption
-  }
+      .take(1)
+
+  private val findPostWithIndexC = Compiled(postWithIndexR _)
 
   def findInRange(takeBefore: Int, takeAfter: Int, postIndex: Long = 0, discussionId: Long): Future[Seq[Post]] = db.run {
     tableQuery
@@ -50,4 +60,15 @@ class PostQueriesExtended(implicit override val db: JdbcProfile#Backend#Database
         case (p, i) => i >= postIndex - takeBefore && i <= postIndex + takeAfter
       }.map(_._1).result
   }
+
+  def createPost(post: Post): Future[Secret] = db.run {
+   (for {
+      exists <- discussions.filter(_.id === post.discussionId).result.headOption if exists.isDefined
+      createPostId <- insertQ(post)
+    } yield post.secret).transactionally
+  }
+
+  def listPostsWithLimits(drop: Int, limit: Int): Future[Seq[Post]] = db.run(listPostsWithLimitsC(drop, limit).result)
+  private def listPostsWithLimitR(drop: ConstColumn[Long], limit: ConstColumn[Long]) = tableQuery.drop(drop).take(limit)
+  private val listPostsWithLimitsC = Compiled(listPostsWithLimitR _)
 }

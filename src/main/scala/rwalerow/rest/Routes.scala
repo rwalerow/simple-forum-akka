@@ -11,10 +11,8 @@ import cats.data.Validated.{Invalid, Valid}
 import rwalerow.domain._
 import rwalerow.utils.{Configuration, PersistenceModule, RestLogicServices}
 import rwalerow.domain.JsonProtocol._
-import rwalerow.services.PostCalculations
 import rwalerow.rest.RejectionHandlers._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import slick.driver.PostgresDriver.api._
 
 import scala.util.{Failure, Success}
@@ -37,7 +35,7 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
     (pathEnd & post & handleRejections(handlerWithMessage(createDiscussionMessage)) & entity(as[CreateDiscussion])) { createD =>
       CreateDiscussion.validate(createD) match {
         case Valid(createDiscussion) =>
-          onComplete(modules.discussionService.createDiscussion(createDiscussion)) {
+          onComplete(modules.discussionLogicService.createDiscussion(createDiscussion)) {
             case Success(secret) => complete(Created -> secret)
             case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
@@ -50,19 +48,8 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
 
     val configLimit = modules.config.getInt("limit.posts")
 
-    onComplete(modules.postQueries.postWithIndex(discussionId, postId)) {
-      case Success(Some((post, index))) =>
-        val responseQuery = for {
-          before                  <- modules.postQueries.countBefore(discussionId, post.createDate)
-          after                   <- modules.postQueries.countAfter(discussionId, post.createDate)
-          (takeBefore, takeAfter) = if((before + after + 1) > configLimit) PostCalculations.calculateBeforeAndAfter(before, after, configLimit) else (before, after)
-          posts                   <- modules.postQueries.findInRange(takeBefore, takeAfter, index, discussionId)
-        } yield posts
-        onComplete(responseQuery) {
-          case Success(postsResult) => complete(postsResult)
-          case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
-        }
-      case Success(None) => complete(BadRequest -> ErrorResponse(BadRequest, "Post not found"))
+    onComplete(modules.postLogicService.listPosts(discussionId, postId, configLimit)) {
+      case Success(postsResult) => complete(postsResult)
       case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }
   }
@@ -73,22 +60,8 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
     (handleRejections(handlerWithMessage(createPostMessage)) & entity(as[CreatePost])) { createP =>
       CreatePost.validate(createP) match {
         case Valid(createPost) =>
-          val post = Post(
-            nick = Nick(createPost.nick),
-            contents = Contents(createPost.contents),
-            email = Email(createPost.email),
-            secret = Secret(Secret.generate),
-            createDate = Timestamp.valueOf(LocalDateTime.now()),
-            discussionId = discussionId
-          )
-
-          val query = for {
-            exists <- modules.discussionQueries.findById(discussionId) if exists.isDefined
-            createPostId <- modules.postQueries.insert(post)
-          } yield createPostId
-
-          onComplete(query) {
-            case Success(_) => complete(Created -> post.secret)
+          onComplete(modules.postLogicService.createPost(createPost, discussionId)) {
+            case Success(secret) => complete(Created -> secret)
             case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
           }
         case Invalid(errors) => complete(BadRequest -> ErrorResponse(BadRequest, errors))

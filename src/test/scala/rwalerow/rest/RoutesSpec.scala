@@ -57,12 +57,12 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
 
     "valid discussion be created" in new Mocks {
       val validCreateDiscussion = CreateDiscussion("subject", "contents", "nick", "email@gmail.com")
-      modules.discussionService.createDiscussion(any[CreateDiscussion]) returns Future(Secret("secret"))
+      modules.discussionLogicService.createDiscussion(any[CreateDiscussion]) returns Future(Secret("secret"))
 
       Post("/discussion", validCreateDiscussion) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        verify(modules.discussionService).createDiscussion(any[CreateDiscussion])
+        verify(modules.discussionLogicService).createDiscussion(any[CreateDiscussion])
       }
     }
 
@@ -91,16 +91,13 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
       val discussion = Discussion(Some(1), Subject("subject"))
       modules.postQueries.insert(any[Post]) returns Future(1)
       modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
+      modules.postLogicService.createPost(validPost, 1) returns Future(Secret("secret"))
 
       Post("/discussion/1/post", validPost) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
         responseAs[String].length > 0 shouldEqual true
-        /*
-            Why it is called twice?
-         */
-//        verify(modules.postDao).insert(any[Post])
-        verify(modules.discussionQueries).findById(anyLong)
+        verify(modules.postLogicService).createPost(validPost, 1)
       }
     }
 
@@ -132,10 +129,7 @@ class RoutesSpec extends AbstractRestTest with Matchers with AnyMatchers {
         createDate = Timestamp.valueOf(LocalDateTime.now()),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.postQueries.countBefore(anyInt, any[Timestamp]) returns Future(0)
-      modules.postQueries.countAfter(anyInt, any[Timestamp]) returns Future(0)
-      modules.postQueries.postWithIndex(anyLong, anyLong) returns Future(Some((p, 0)))
-      modules.postQueries.findInRange(anyInt, anyInt, anyLong, anyLong) returns Future(List(p))
+      modules.postLogicService.listPosts(anyLong, anyLong, anyInt) returns Future(List(p))
 
       Get("/discussion/1/posts/1") ~> routes ~> check {
         handled shouldEqual true

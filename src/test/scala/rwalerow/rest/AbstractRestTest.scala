@@ -5,7 +5,7 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.{Matchers, WordSpec}
 import org.specs2.mock.Mockito
 import rwalerow.domain.{Discussion, Discussions, Post, Posts}
-import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended}
+import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended, PostRestLogicService}
 import rwalerow.utils.{BaseDao, ConfigurationImpl, PersistenceModule, RestLogicServices}
 
 /**
@@ -18,7 +18,8 @@ trait AbstractRestTest extends WordSpec with Matchers with ScalatestRouteTest wi
     override val discussionQueries: DiscussionQueriesExtended = mock[DiscussionQueriesExtended]
     override val postQueries: PostQueriesExtended = mock[PostQueriesExtended]
     val conf = mock[Config]
-    override val discussionService: DiscussionRestLogicService = mock[DiscussionRestLogicService]
+    override val discussionLogicService = mock[DiscussionRestLogicService]
+    override val postLogicService = mock[PostRestLogicService]
     override def config = conf
   }
 }

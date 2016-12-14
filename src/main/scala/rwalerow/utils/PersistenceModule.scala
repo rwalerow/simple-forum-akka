@@ -1,9 +1,11 @@
 package rwalerow.utils
 
-import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended}
+import rwalerow.domain.Discussions
+import rwalerow.services.{DiscussionQueriesExtended, DiscussionRestLogicService, PostQueriesExtended, PostRestLogicService}
 import slick.backend.DatabaseConfig
 import slick.driver.JdbcProfile
 import slick.jdbc.JdbcBackend
+import slick.lifted.TableQuery
 
 /**
   * source: https://github.com/cdiniz/slick-akka-http/blob/master/src/main/scala/utils/PersistenceModule.scala
@@ -22,7 +24,8 @@ trait PersistenceModule {
 }
 
 trait RestLogicServices {
-  val discussionService: DiscussionRestLogicService
+  val discussionLogicService: DiscussionRestLogicService
+  val postLogicService: PostRestLogicService
 }
 
 trait PersistenceModuleImpl extends PersistenceModule with DbModule with RestLogicServices {
@@ -32,10 +35,11 @@ trait PersistenceModuleImpl extends PersistenceModule with DbModule with RestLog
   override implicit val profile: JdbcProfile = dbConfig.driver
   override implicit val db: JdbcBackend#DatabaseDef = dbConfig.db
 
-  override val postQueries = new PostQueriesExtended
+  override val postQueries = new PostQueriesExtended(TableQuery[Discussions])
   override val discussionQueries = new DiscussionQueriesExtended(postQueries)
 
-  override val discussionService: DiscussionRestLogicService = new DiscussionRestLogicService(this)
+  override val discussionLogicService = new DiscussionRestLogicService(this)
+  override val postLogicService = new PostRestLogicService(this)
 }
 
 
