@@ -30,11 +30,12 @@ class PostRestLogicService(modules: Configuration with PersistenceModule) {
     val limit = modules.config.getInt("limit.posts")
 
     for {
-      Some((post, index))     <- modules.postQueries.postWithIndex(discussionId, postId)
-      before                  <- modules.postQueries.countBefore(discussionId, post.createDate)
-      after                   <- modules.postQueries.countAfter(discussionId, post.createDate)
-      (takeBefore, _) = if((before + after + 1) > limit) PostCalculations.calculateBeforeAndAfter(before, after, limit) else (before, after)
-      posts                   <- modules.postQueries.listPostsWithLimits(takeBefore, limit)
+      Some((post, index)) <- modules.postQueries.postWithIndex(discussionId, postId)
+      before              <- modules.postQueries.countBefore(discussionId, post.createDate)
+      after               <- modules.postQueries.countAfter(discussionId, post.createDate)
+      (takeBefore, _) = if ((before + after + 1) > limit) PostCalculations.calculateBeforeAndAfter(before, after, limit)
+      else (before, after)
+      posts <- modules.postQueries.listPostsWithLimits(takeBefore, limit)
     } yield posts
   }
 

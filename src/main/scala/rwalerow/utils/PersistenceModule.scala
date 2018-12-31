@@ -33,14 +33,12 @@ trait PersistenceModuleImpl extends PersistenceModule with DbModule with RestLog
   this: Configuration =>
 
   private val dbConfig: DatabaseConfig[JdbcProfile] = DatabaseConfig.forConfig("postgres")
-  override implicit val profile: JdbcProfile = dbConfig.driver
+  override implicit val profile: JdbcProfile        = dbConfig.driver
   override implicit val db: JdbcBackend#DatabaseDef = dbConfig.db
 
-  override val postQueries = new PostQueriesExtended(TableQuery[Discussions])
+  override val postQueries       = new PostQueriesExtended(TableQuery[Discussions])
   override val discussionQueries = new DiscussionQueriesExtended(postQueries)
 
   override val discussionLogicService = new DiscussionRestLogicService(this)
-  override val postLogicService = new PostRestLogicService(this)
+  override val postLogicService       = new PostRestLogicService(this)
 }
-
-

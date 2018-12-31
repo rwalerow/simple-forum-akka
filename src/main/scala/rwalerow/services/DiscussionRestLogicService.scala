@@ -27,8 +27,8 @@ class DiscussionRestLogicService(modules: Configuration with PersistenceModule) 
 
   def listDiscussionByPostDates(limit: Option[Int] = None, offset: Option[Int] = None): Future[Seq[Discussion]] = {
 
-    val maxLimit = modules.config.getInt("limit.discussions")
-    val calculatedLimit = limit.filter(_ < maxLimit).getOrElse(maxLimit)
+    val maxLimit         = modules.config.getInt("limit.discussions")
+    val calculatedLimit  = limit.filter(_ < maxLimit).getOrElse(maxLimit)
     val calculatedOffset = offset.getOrElse(0)
 
     modules.discussionQueries.listDiscussionByPostDates(calculatedLimit, calculatedOffset)

@@ -7,10 +7,10 @@ import rwalerow.rest.Routes
 import rwalerow.utils.{ConfigurationImpl, PersistenceModuleImpl}
 
 object ForumMicroservice extends App {
-  implicit val system = ActorSystem()
-  implicit val executor = system.dispatcher
+  implicit val system       = ActorSystem()
+  implicit val executor     = system.dispatcher
   implicit val materializer = ActorMaterializer()
-  val modules = new ConfigurationImpl with PersistenceModuleImpl
+  val modules               = new ConfigurationImpl with PersistenceModuleImpl
 
   val config = ConfigFactory.load()
   val logger = Logging(system, getClass)

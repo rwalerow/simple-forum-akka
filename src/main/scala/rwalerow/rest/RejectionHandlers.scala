@@ -8,16 +8,19 @@ import rwalerow.domain.JsonProtocol._
 
 object RejectionHandlers {
 
-  val baseMessage = "json entity with format required "
-  val contentsMessage = "{ contents: 'contents' }"
+  val baseMessage             = "json entity with format required "
+  val contentsMessage         = "{ contents: 'contents' }"
   val createDiscussionMessage = "{ subject: 'contents', contents: 'contents', nick: 'nick', email:'email' }"
-  val createPostMessage = "{ contents: 'contents', nick: 'nick', email:'email' }"
+  val createPostMessage       = "{ contents: 'contents', nick: 'nick', email:'email' }"
 
-  def handlerWithMessage(message: String) = RejectionHandler.newBuilder()
-    .handle {
-      case MalformedRequestContentRejection(_,_) =>
-        complete(BadRequest -> ErrorResponse(BadRequest, baseMessage + message))
-      case RequestEntityExpectedRejection =>
-        complete(BadRequest -> ErrorResponse(BadRequest, baseMessage + message))
-    }.result()
+  def handlerWithMessage(message: String) =
+    RejectionHandler
+      .newBuilder()
+      .handle {
+        case MalformedRequestContentRejection(_, _) =>
+          complete(BadRequest -> ErrorResponse(BadRequest, baseMessage + message))
+        case RequestEntityExpectedRejection =>
+          complete(BadRequest -> ErrorResponse(BadRequest, baseMessage + message))
+      }
+      .result()
 }

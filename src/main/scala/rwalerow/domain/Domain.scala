@@ -10,13 +10,20 @@ import scala.util.Random
 /**
   * Domain
   */
-case class Email(value: String) extends MappedTo[String]
-case class Nick(value: String) extends MappedTo[String]
-case class Secret(value: String) extends MappedTo[String]
+case class Email(value: String)    extends MappedTo[String]
+case class Nick(value: String)     extends MappedTo[String]
+case class Secret(value: String)   extends MappedTo[String]
 case class Contents(value: String) extends MappedTo[String]
-case class Post(id: Option[Long] = None, nick: Nick, contents: Contents, email: Email, createDate: Timestamp, secret: Secret, discussionId: Long) extends BaseEntity
+case class Post(id: Option[Long] = None,
+                nick: Nick,
+                contents: Contents,
+                email: Email,
+                createDate: Timestamp,
+                secret: Secret,
+                discussionId: Long)
+    extends BaseEntity
 
-case class Subject(value: String) extends MappedTo[String]
+case class Subject(value: String)                                extends MappedTo[String]
 case class Discussion(id: Option[Long] = None, subject: Subject) extends BaseEntity
 
 /**
@@ -34,7 +41,7 @@ object Subject {
   def isValid(subject: String): Boolean = subject.length < 255
 }
 object Secret {
-  val secretLength = 40
+  val secretLength     = 40
   def generate: String = Random.alphanumeric.take(secretLength).mkString
 }
 object Contents {

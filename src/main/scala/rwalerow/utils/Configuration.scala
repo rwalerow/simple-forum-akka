@@ -17,7 +17,7 @@ trait ConfigurationImpl extends Configuration {
 
     scala.sys.props.get("application.config") match {
       case Some(fileName) => ConfigFactory.parseFile(new File(fileName)).withFallback(configDefaults)
-      case None => configDefaults
+      case None           => configDefaults
     }
   }
 

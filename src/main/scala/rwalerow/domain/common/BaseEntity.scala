@@ -15,7 +15,7 @@ trait BaseEntity {
   val id: Option[Long]
 }
 
-abstract class BaseTable[T](tag: Tag, name: String) extends Table[T](tag, name){
+abstract class BaseTable[T](tag: Tag, name: String) extends Table[T](tag, name) {
   def id = column[Long]("id", O.PrimaryKey, O.AutoInc)
 }
 
@@ -25,7 +25,7 @@ trait BaseDao[T, A] {
   def update(row: A): Future[Int]
   def update(rows: Seq[A]): Future[Unit]
   def findById(id: Long): Future[Option[A]]
-  def findByFilter[C : CanBeQueryCondition](f: T => C): Future[Seq[A]]
+  def findByFilter[C: CanBeQueryCondition](f: T => C): Future[Seq[A]]
   def deleteById(id: Long): Future[Int]
   def deleteById(ids: Seq[Long]): Future[Int]
   def deleteByFilter[C: CanBeQueryCondition](f: T => C): Future[Int]
@@ -41,9 +41,14 @@ trait WithTableQuery[T <: BaseTable[A], A <: BaseEntity] {
   val tableQuery: TableQuery[T]
 }
 
-class BaseDaoImpl[T <: BaseTable[A], A <: BaseEntity](val tableQuery: TableQuery[T])
-    (implicit val db: JdbcProfile#Backend#Database, implicit val profile: JdbcProfile)
-    extends BaseDao[T, A] with BaseDBIODao[T, A] with Profile with DbModule with WithTableQuery[T, A] {
+class BaseDaoImpl[T <: BaseTable[A], A <: BaseEntity](val tableQuery: TableQuery[T])(
+    implicit val db: JdbcProfile#Backend#Database,
+    implicit val profile: JdbcProfile)
+    extends BaseDao[T, A]
+    with BaseDBIODao[T, A]
+    with Profile
+    with DbModule
+    with WithTableQuery[T, A] {
 
   import profile.api._
 
