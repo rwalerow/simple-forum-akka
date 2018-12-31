@@ -1,6 +1,6 @@
 package rwalerow.rest
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
+import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
 import akka.http.scaladsl.model.HttpResponse
 import akka.http.scaladsl.model.StatusCodes._
 import akka.http.scaladsl.server.Directives
@@ -16,7 +16,7 @@ import scala.util.{Failure, Success}
 
 class Routes(modules: Configuration with PersistenceModule with RestLogicServices) extends Directives {
 
-  def discussionListRoute = (pathPrefix("discussions") & pathEnd & get & parameters('limit.as[Int].?, 'offset.as[Int].?)) { (limit, offset) =>
+  def discussionListRoute = (get & pathPrefix("discussions") & parameters('limit.as[Int].?, 'offset.as[Int].?) & pathEnd) { (limit, offset) =>
     onComplete(modules.discussionLogicService.listDiscussionByPostDates(limit, offset)) {
       case Success(discussions) => complete(discussions)
       case Failure(err) => complete(InternalServerError ->  ErrorResponse(InternalServerError, err.getMessage))
@@ -59,7 +59,7 @@ class Routes(modules: Configuration with PersistenceModule with RestLogicService
   }
 
   def deletePostRoute = (postRoutePrefix & path(Segment) & delete) { (discussionId, secret) =>
-    onComplete(modules.postQueries.deleteByFilter{ x => x.discussionId === discussionId && x.secret === Secret(secret)}) {
+    onComplete(modules.postLogicService.deletePost(discussionId, Secret(secret))) {
       case Success(_) => complete(HttpResponse(OK))
       case Failure(err) => complete(InternalServerError -> ErrorResponse(InternalServerError, err.getMessage))
     }

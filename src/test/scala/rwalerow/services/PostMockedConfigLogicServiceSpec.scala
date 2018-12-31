@@ -1,14 +1,12 @@
 package rwalerow.services
 
 import org.scalatest.Matchers
-import org.specs2.matcher.AnyMatchers
+import rwalerow.domain.Secret
 import rwalerow.rest.{AbstractMockedConfigTest, CreatePost, Routes}
-import org.mockito.Mockito._
-import rwalerow.domain.{Post, Secret}
 
 import scala.concurrent.Future
 
-class PostMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers {
+class PostMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with Matchers {
 
   def actorRefFactory = system
   val modules = new Modules {}
@@ -17,12 +15,10 @@ class PostMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with Mat
 
   "Create post" should {
     "call create post query" in {
-      modules.postQueries.createPost(any[Post]) returns Future(Secret("secret"))
+      modules.postQueries.createPost _ expects * returning Future(Secret("secret"))
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
 
-      postService.createPost(validPost, 1L)
-
-      verify(modules.postQueries).createPost(any[Post])
+      postService.createPost(validPost,1L)
     }
   }
 }

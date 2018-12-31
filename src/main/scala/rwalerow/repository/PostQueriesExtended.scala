@@ -35,8 +35,8 @@ class PostQueriesExtended(discussions: TableQuery[Discussions])(implicit overrid
 
   private def countBeforeR(discussionId: Rep[Long], date: Rep[Timestamp]): Rep[Int] = countByQ(discussionId, _.createDate < date)
   private def countAfterR(discussionId: Rep[Long], date: Rep[Timestamp]): Rep[Int] = countByQ(discussionId, _.createDate > date)
-  private val countPostsBeforeDateC = Compiled(countBeforeR _)
-  private val countPostsAfterDateC = Compiled(countAfterR _)
+  private def countPostsBeforeDateC = Compiled(countBeforeR _)
+  private def countPostsAfterDateC = Compiled(countAfterR _)
 
   def postWithIndex(discussionId: Long, id: Long): Future[Option[(Post, Long)]] =
     db.run(findPostWithIndexC(discussionId, id).result.headOption)
@@ -49,7 +49,7 @@ class PostQueriesExtended(discussions: TableQuery[Discussions])(implicit overrid
       .filter{ case (p, i) => p.id === id }
       .take(1)
 
-  private val findPostWithIndexC = Compiled(postWithIndexR _)
+  private def findPostWithIndexC = Compiled(postWithIndexR _)
 
   def findInRange(takeBefore: Int, takeAfter: Int, postIndex: Long = 0, discussionId: Long): Future[Seq[Post]] = db.run {
     tableQuery
@@ -70,5 +70,7 @@ class PostQueriesExtended(discussions: TableQuery[Discussions])(implicit overrid
 
   def listPostsWithLimits(drop: Int, limit: Int): Future[Seq[Post]] = db.run(listPostsWithLimitsC(drop, limit).result)
   private def listPostsWithLimitR(drop: ConstColumn[Long], limit: ConstColumn[Long]) = tableQuery.drop(drop).take(limit)
-  private val listPostsWithLimitsC = Compiled(listPostsWithLimitR _)
+  private def listPostsWithLimitsC = Compiled(listPostsWithLimitR _)
+
+  def deletePost(discussionId: Long, secret: Secret): Future[Int] = deleteByFilter(x => x.discussionId === discussionId && x.secret === secret)
 }

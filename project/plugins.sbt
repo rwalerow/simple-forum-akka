@@ -1,5 +1,6 @@
 logLevel := Level.Warn
 
-addSbtPlugin("org.flywaydb" % "flyway-sbt" % "4.0.3")
+addSbtPlugin("io.github.davidmweber" % "flyway-sbt" % "5.2.0")
+addSbtPlugin("org.lyranthe.sbt" % "partial-unification" % "1.1.2")
 
 resolvers += "Flyway" at "https://flywaydb.org/repo"

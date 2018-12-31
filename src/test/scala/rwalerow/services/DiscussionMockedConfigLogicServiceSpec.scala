@@ -1,14 +1,13 @@
 package rwalerow.services
 
-import org.mockito.Mockito._
-import org.scalatest.Matchers
-import org.specs2.matcher.AnyMatchers
-import rwalerow.domain.{Discussion, Post, Secret}
+import org.scalatest.concurrent.ScalaFutures
+import rwalerow.domain.Secret
 import rwalerow.rest.{AbstractMockedConfigTest, CreateDiscussion}
 
 import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
 
-class DiscussionMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers {
+class DiscussionMockedConfigLogicServiceSpec extends AbstractMockedConfigTest with ScalaFutures {
 
   def actorRefFactory = system
   val modules = new Modules {}
@@ -16,23 +15,19 @@ class DiscussionMockedConfigLogicServiceSpec extends AbstractMockedConfigTest wi
 
   "Create discussion" should {
     "call create discussion query" in {
-      modules.discussionQueries.createDiscussion(any[Discussion], any[Post]) returns Future(Secret("secret"))
+      (modules.discussionQueries.createDiscussion _).expects(*, *).returning(Future(Secret("secret")))
       val createDiscussion = CreateDiscussion("subject", "contents", "nick", "email@gmail.com")
 
-      discussionService.createDiscussion(createDiscussion)
-
-      verify(modules.discussionQueries).createDiscussion(any[Discussion], any[Post])
+      discussionService.createDiscussion(createDiscussion).futureValue shouldBe Secret("secret")
     }
   }
 
   "List discussions" should {
     "pass config limit to listDiscussions queries" in {
-      modules.discussionQueries.listDiscussionByPostDates(anyInt, anyInt) returns Future(List())
-      modules.conf.getInt(anyString) returns 10
+      (modules.discussionQueries.listDiscussionByPostDates _).expects(10, *) returns Future(List())
+      (modules.conf.getInt _).expects(*).returning(10)
 
       discussionService.listDiscussionByPostDates(limit = Some(22))
-
-      verify(modules.discussionQueries).listDiscussionByPostDates(limit = argThat(be_==(10)), offset = anyInt)
     }
   }
 }

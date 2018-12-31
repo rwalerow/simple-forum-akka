@@ -3,31 +3,29 @@ package rwalerow.rest
 import java.sql.Timestamp
 import java.time.LocalDateTime
 
-import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport._
-import akka.http.scaladsl.model.StatusCodes._
-import org.mockito.Mockito._
-import org.scalatest.Matchers
+import de.heikoseeberger.akkahttpplayjson.PlayJsonSupport._
 import rwalerow.domain.JsonProtocol._
+import akka.http.scaladsl.model.StatusCodes._
+import org.scalatest.Matchers
 import rwalerow.domain._
 import rwalerow.rest.RejectionHandlers._
-import org.specs2.matcher.AnyMatchers
 
 import scala.concurrent.Future
 import slick.driver.PostgresDriver.api._
 
-class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers {
+class RoutesSpec extends AbstractMockedConfigTest with Matchers {
 
   trait Mocks {
     def actorRefFactory = system
-    val modules = new Modules {}
+    val modules = new Modules{}
     val routes = new Routes(modules).routes
   }
 
   "Discussion routes" should {
 
     "return empty array of discussions" in new Mocks {
-      modules.discussionLogicService.listDiscussionByPostDates(any[Option[Int]], any[Option[Int]]) returns Future(List())
-      modules.conf.getInt(anyString) returns 10
+      modules.discussionQueries.listDiscussionByPostDates _ expects (*, *) returning Future(List())
+      modules.conf.getInt _  expects * returning 10
 
       Get("/discussions") ~> routes ~> check {
         handled shouldEqual true
@@ -36,22 +34,21 @@ class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers
     }
 
     "pass url limit to listDiscussions" in new Mocks {
-      modules.discussionLogicService.listDiscussionByPostDates(any[Option[Int]], any[Option[Int]]) returns Future(List())
+      modules.discussionQueries.listDiscussionByPostDates _ expects (2, 0) returning Future(List())
+      modules.conf.getInt _  expects * returning 10
 
       Get("/discussions?limit=2") ~> routes ~> check {
         handled shouldEqual true
-        verify(modules.discussionLogicService).listDiscussionByPostDates(limit = argThat(be_==(Some(2))), offset = any[Option[Int]])
       }
     }
 
     "valid discussion be created" in new Mocks {
       val validCreateDiscussion = CreateDiscussion("subject", "contents", "nick", "email@gmail.com")
-      modules.discussionLogicService.createDiscussion(any[CreateDiscussion]) returns Future(Secret("secret"))
+      modules.discussionQueries.createDiscussion _ expects (*, *) returning Future(Secret("secret"))
 
       Post("/discussion", validCreateDiscussion) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        verify(modules.discussionLogicService).createDiscussion(any[CreateDiscussion])
       }
     }
 
@@ -78,15 +75,13 @@ class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers
     "create a valid post" in new Mocks {
       val validPost = CreatePost("contents", "nick", "email@gmail.com")
       val discussion = Discussion(Some(1), Subject("subject"))
-      modules.postQueries.insert(any[Post]) returns Future(1)
-      modules.discussionQueries.findById(anyLong) returns Future(Some(discussion))
-      modules.postLogicService.createPost(validPost, 1) returns Future(Secret("secret"))
+
+      modules.postQueries.createPost _ expects * returning Future(Secret("secret"))
 
       Post("/discussion/1/post", validPost) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual Created
-        responseAs[String].length > 0 shouldEqual true
-        verify(modules.postLogicService).createPost(validPost, 1)
+        responseAs[Secret] shouldBe Secret("secret")
       }
     }
 
@@ -100,25 +95,38 @@ class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers
 
     "delete valid post" in new Mocks {
       val secret = "abcdefghijklmnoprstuwxyz"
-      def f(x: Posts): Rep[Boolean] = x.id === 1L && x.secret === Secret(secret)
-      modules.postQueries.deleteByFilter(f) returns Future(1)
+      modules.postQueries.deletePost _ expects (1L, Secret(secret)) returning Future(1)
 
       Delete("/discussion/1/post/" + secret, secret) ~> routes ~> check {
         handled shouldEqual true
         status shouldEqual OK
-        verify(modules.postQueries).deleteByFilter(f)
       }
     }
 
     "find all posts for discussion" in new Mocks {
+      val date = LocalDateTime.now()
       val p = rwalerow.domain.Post(id = Some(1),
         nick = Nick("nick"),
         contents = Contents("contents"),
         email = Email("a@gmail.com"),
-        createDate = Timestamp.valueOf(LocalDateTime.now()),
+        createDate = Timestamp.valueOf(date),
         secret = Secret("abc"),
         discussionId = 1L)
-      modules.postLogicService.listPosts(anyLong, anyLong) returns Future(List(p))
+
+      val postAfter = rwalerow.domain.Post(id = Some(2),
+        nick = Nick("nick 2"),
+        contents = Contents("contents 2"),
+        email = Email("abcd@gmail.com"),
+        createDate = Timestamp.valueOf(date.plusDays(1)),
+        secret = Secret("abc"),
+        discussionId = 1L)
+
+
+      modules.conf.getInt _ expects * returning 10
+      modules.postQueries.postWithIndex _ expects (1, 1) returning Future(Some((p, 1)))
+      modules.postQueries.countBefore _ expects (1, p.createDate) returning Future(0)
+      modules.postQueries.countAfter _ expects (1, p.createDate) returning Future(1)
+      modules.postQueries.listPostsWithLimits _ expects (*, *) returns Future(List(postAfter))
 
       Get("/discussion/1/posts/1") ~> routes ~> check {
         handled shouldEqual true
@@ -129,7 +137,7 @@ class RoutesSpec extends AbstractMockedConfigTest with Matchers with AnyMatchers
     "update post based on secret" in new Mocks {
       val secret = Secret("abcdefg")
       val contents = Contents("new contetns")
-      modules.postQueries.updateBySecret(1L, secret, contents) returns Future(1)
+      modules.postQueries.updateBySecret _ expects (1L, secret, contents) returns Future(1)
 
       Put(s"/discussion/1/post/${secret.value}", contents) ~> routes ~> check {
         handled shouldEqual true
